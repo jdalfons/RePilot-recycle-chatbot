@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongollm
+    ports:
+      - "27017:27017"
+
+  postgres:
+    container_name: postgresllm
+    image: postgres:latest
+    ports:
+        - "32003:5433"
+    environment:
+        POSTGRES_DB: llm
+        POSTGRES_USER: llm
+        POSTGRES_PASSWORD: llm
+        POSTGRES_INITDB_ARGS: "--auth-local=trust --auth-host=trust"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chromadb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5  
+
+  client:
+    image: llm-app
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8503:8503"
+    # volumes:
+      # - ./chromadb/:/chromadb/
+    environment:
+        DOCKER_ENV: true
+        MONGO_HOST: "mongollm"
+        POSTGRES_HOST: "postgresllm"
+        POSTGRES_USER: llm
+        POSTGRES_PASSWORD: llm
+        POSTGRES_DBNAME: llm
+        POSTGRES_PORT: 5433
+        REACT_APP_CHROMA_SERVER_URL: "http://localhost:8000"
+        MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+        HF_TOKEN: ${HF_TOKEN}

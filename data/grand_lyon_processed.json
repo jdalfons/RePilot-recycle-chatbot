@@ -1,0 +1,906 @@
+[
+    {
+        "id": "1",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Verre",
+        "produits": [
+            {
+                "nom": "Bouteille en verre",
+                "synonymes": ["Récipient en verre", "Bouteille recyclable"],
+                "tags": ["verre", "bouteille", "recyclage"]
+            },
+            {
+                "nom": "Bouteille de vin",
+                "synonymes": ["Bouteille de vin en verre", "Bouteille de vin vide"],
+                "tags": ["vin", "bouteille", "recyclage"]
+            },
+            {
+                "nom": "Bouteille d'huile",
+                "synonymes": ["Bouteille en verre d'huile", "Récipient pour huile"],
+                "tags": ["huile", "bouteille", "recyclage"]
+            },
+            {
+                "nom": "Bouteille de jus de fruits",
+                "synonymes": ["Bouteille en verre de jus", "Bouteille de jus recyclable"],
+                "tags": ["jus", "bouteille", "verre"]
+            },
+            {
+                "nom": "Bocal en verre",
+                "synonymes": ["Pot en verre", "Récipient alimentaire en verre"],
+                "tags": ["bocal", "verre", "recyclage"]
+            },
+            {
+                "nom": "Pots en verre",
+                "synonymes": ["Petits récipients en verre", "Pots alimentaires"],
+                "tags": ["pots", "verre", "recyclage"]
+            },
+            {
+                "nom": "Pots de confiture",
+                "synonymes": ["Pot de confiture vide", "Bocal de confiture"],
+                "tags": ["confiture", "pots", "verre"]
+            },
+            {
+                "nom": "Pots de cornichons",
+                "synonymes": ["Bocal de cornichons", "Pot de conserve en verre"],
+                "tags": ["cornichons", "pots", "verre"]
+            },
+            {
+                "nom": "Flacon en verre",
+                "synonymes": ["Flacon recyclable", "Petit récipient en verre"],
+                "tags": ["flacon", "verre", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Déposez les contenants vidés, sans couvercle et en vrac, dans le silo à verre.",
+            "Retirez les bouchons et couvercles."
+        ],
+        "exceptions": [
+            "Pas de vaisselle cassée.",
+            "Pas de vaisselle en verre.",
+            "Pas de miroirs.",
+            "Pas d'ampoules.",
+            "Pas de plats.",
+            "Pas de porcelaine.",
+            "Pas de faïence.",
+            "Pas de débris de vaisselle."
+        ],
+        "couleur_recipient": "Vert (silo à verre)",
+        "points_collecte": [
+            "Silo à verre proche de chez vous."
+        ],
+        "emplacement": [
+            "Dans la ville",
+            "Voie publique du territoire",
+            "Silo à verre proche de chez vous"
+        ],
+        "recommendations": [
+            "J’achète des bouteilles et bocaux consignés pour encourager leur réutilisation.",
+            "Privilégiez les produits en verre consigné pour limiter les déchets."
+        ],
+        "avantages": [
+            "Chaque tonne consignée ou triée se transforme en un don pour la recherche contre le cancer.",
+            "Le recyclage du verre permet de réduire les émissions de CO2.",
+            "Le verre recyclé est utilisé pour fabriquer de nouveaux contenants.",
+            "Avec une bouteille recyclée, on peut fabriquer n’importe quel produit en verre.",
+            "Le recyclage du verre économise de l’énergie, car le verre recyclé se fond à une température inférieure à sa production d’origine."
+        ],
+        "remarques": [
+            "Les verres de table, bouteilles de parfum, vases, déodorants et vitres doivent être jetés dans le bac gris.",
+            "La vaisselle, la porcelaine et la faïence ne se recyclent pas et doivent être jetées dans le bac gris ou dans la benne gravats en déchèterie."
+        ]
+    },{
+        "id": "2",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Les emballages en plastique",
+        "produits": [
+            {
+                "nom": "Sac plastique",
+                "synonymes": ["Sachet en plastique", "Sac jetable", "Sac fin en plastique"],
+                "tags": ["sac", "plastique", "emballage"]
+            },
+            {
+                "nom": "Sac de légumes congelés",
+                "synonymes": ["Sac pour légumes surgelés", "Emballage légumes congelés"],
+                "tags": ["sac", "légumes", "congelés", "plastique"]
+            },
+            {
+                "nom": "Sachet de fromage râpé",
+                "synonymes": ["Emballage de fromage râpé", "Sachet pour fromage"],
+                "tags": ["sachet", "fromage", "plastique"]
+            },
+            {
+                "nom": "Suremballage plastique de pack de bouteilles",
+                "synonymes": ["Film plastique de bouteilles", "Emballage plastique pour bouteilles"],
+                "tags": ["plastique", "bouteilles", "suremballage"]
+            },
+            {
+                "nom": "Recharge de savon",
+                "synonymes": ["Sachet de savon liquide", "Recharge plastique savon"],
+                "tags": ["savon", "recharge", "plastique"]
+            },
+            {
+                "nom": "Tube de dentifrice",
+                "synonymes": ["Emballage de dentifrice", "Tube plastique pour dentifrice"],
+                "tags": ["tube", "dentifrice", "plastique"]
+            },
+            {
+                "nom": "Pot de crème",
+                "synonymes": ["Pot plastique de crème", "Récipient de crème"],
+                "tags": ["pot", "crème", "plastique"]
+            },
+            {
+                "nom": "Pot de yaourt",
+                "synonymes": ["Récipient de yaourt", "Pot individuel en plastique"],
+                "tags": ["pot", "yaourt", "plastique"]
+            },
+            {
+                "nom": "Barquette en polystyrène",
+                "synonymes": ["Barquette alimentaire en polystyrène", "Emballage en polystyrène"],
+                "tags": ["barquette", "polystyrène", "plastique"]
+            },
+            {
+                "nom": "Barquette plastique avec couvercle",
+                "synonymes": ["Barquette fermée en plastique", "Contenant plastique avec couvercle"],
+                "tags": ["barquette", "couvercle", "plastique"]
+            },
+            {
+                "nom": "Barquette de beurre",
+                "synonymes": ["Contenant de beurre", "Barquette alimentaire de beurre"],
+                "tags": ["barquette", "beurre", "plastique"]
+            },
+            {
+                "nom": "Boîte d'œufs",
+                "synonymes": ["Emballage pour œufs", "Boîte en plastique pour œufs"],
+                "tags": ["boîte", "œufs", "plastique"]
+            },
+            {
+                "nom": "Paquet de chips",
+                "synonymes": ["Emballage de chips", "Sachet plastique pour chips"],
+                "tags": ["paquet", "chips", "plastique"]
+            },
+            {
+                "nom": "Emballage de jambon",
+                "synonymes": ["Film plastique de jambon", "Emballage alimentaire jambon"],
+                "tags": ["emballage", "jambon", "plastique"]
+            },
+            {
+                "nom": "Emballage de plat surgelé",
+                "synonymes": ["Boîte plastique pour plat surgelé", "Film plastique pour plat congelé"],
+                "tags": ["emballage", "plat surgelé", "plastique"]
+            },
+            {
+                "nom": "Emballage de club sandwich",
+                "synonymes": ["Film plastique pour sandwich", "Emballage alimentaire sandwich"],
+                "tags": ["emballage", "sandwich", "plastique"]
+            },
+            {
+                "nom": "Bouteille",
+                "synonymes": ["Bouteille en plastique", "Récipient jetable en plastique"],
+                "tags": ["bouteille", "plastique", "recyclage"]
+            },
+            {
+                "nom": "Flacon",
+                "synonymes": ["Flacon en plastique", "Petit récipient plastique"],
+                "tags": ["flacon", "plastique", "recyclage"]
+            },
+            {
+                "nom": "Cubitainers (vin)",
+                "synonymes": ["Cubi de vin", "Conteneur plastique pour vin"],
+                "tags": ["vin", "plastique", "cubi"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Mettez les emballages en vrac et pas dans un sac.",
+            "Videz bien le contenu des emballages.",
+            "Ne lavez pas les emballages."
+        ],
+        "exceptions": [
+            "Pas de plastique souillé.",
+            "Pas de sacs plastiques usagés non recyclables."
+        ],
+        "couleur_recipient": "Jaune (bac de tri)",
+        "points_collecte": [
+            "Bac de tri proche de chez vous."
+        ],
+        "emplacement": [
+            "Devant l'appartement",
+            "Bac de tri proche de chez vous"
+        ],
+        "recommendations": [
+            "Je présente mes propres contenants réutilisables (boîtes, sachets) aux commerçants, ces derniers ne peuvent pas les refuser.",
+            "Je privilégie les produits en vrac et les grands formats."
+        ],
+        "avantages": [
+            "En buvant l’eau du robinet du Grand Lyon, une famille de 4 personnes économise environ 200 € en moyenne chaque année."
+        ]
+    },
+    {
+        "id": "3",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Les emballages en métal",
+        "produits": [
+            {
+                "nom": "Canette",
+                "synonymes": ["Boîte de boisson", "Petite bouteille en métal"],
+                "tags": ["canette", "métal", "boisson", "recyclage"]
+            },
+            {
+                "nom": "Boîte de conserve",
+                "synonymes": ["Conserve métallique", "Récipient en métal"],
+                "tags": ["boîte", "conserve", "métal", "aliment"]
+            },
+            {
+                "nom": "Flacon aérosol",
+                "synonymes": ["Spray en métal", "Aérosol recyclable"],
+                "tags": ["flacon", "aérosol", "métal", "recyclage"]
+            },
+            {
+                "nom": "Bouteille en métal",
+                "synonymes": ["Bouteille métallique", "Récipient en aluminium"],
+                "tags": ["bouteille", "métal", "recyclage"]
+            },
+            {
+                "nom": "Barquette en métal",
+                "synonymes": ["Barquette alimentaire métallique", "Emballage en métal"],
+                "tags": ["barquette", "métal", "alimentaire", "recyclage"]
+            },
+            {
+                "nom": "Paquet de café",
+                "synonymes": ["Emballage de café", "Sachet en aluminium"],
+                "tags": ["paquet", "café", "métal", "recyclage"]
+            },
+            {
+                "nom": "Gourde de compote",
+                "synonymes": ["Pochette compote en métal", "Emballage de compote"],
+                "tags": ["gourde", "compote", "métal", "alimentaire"]
+            },
+            {
+                "nom": "Capsule de café/thé",
+                "synonymes": ["Capsule en aluminium", "Capsule recyclable"],
+                "tags": ["capsule", "café", "thé", "métal", "recyclage"]
+            },
+            {
+                "nom": "Papier d’aluminium",
+                "synonymes": ["Feuille d’aluminium", "Film métallique"],
+                "tags": ["papier", "aluminium", "métal", "alimentaire"]
+            },
+            {
+                "nom": "Opercule et capsule de bouteille",
+                "synonymes": ["Couvercle en métal", "Capsule métallique"],
+                "tags": ["opercule", "capsule", "métal", "recyclage"]
+            },
+            {
+                "nom": "Bouchon à vis",
+                "synonymes": ["Bouchon métallique", "Bouchon de bouteille"],
+                "tags": ["bouchon", "métal", "bouteille", "recyclage"]
+            },
+            {
+                "nom": "Couvercle de bocal",
+                "synonymes": ["Couvercle en métal", "Couvercle recyclable"],
+                "tags": ["couvercle", "bocal", "métal", "recyclage"]
+            },
+            {
+                "nom": "Pot de cosmétique",
+                "synonymes": ["Récipient de crème en métal", "Pot métallique"],
+                "tags": ["pot", "cosmétique", "métal", "recyclage"]
+            },
+            {
+                "nom": "Tube en aluminium",
+                "synonymes": ["Tube métallique", "Tube recyclable"],
+                "tags": ["tube", "aluminium", "métal", "recyclage"]
+            },
+            {
+                "nom": "Tube de crème en métal",
+                "synonymes": ["Tube de soin en métal", "Récipient en métal"],
+                "tags": ["tube", "crème", "métal", "recyclage"]
+            },
+            {
+                "nom": "Plaquette de médicament vide",
+                "synonymes": ["Blister de médicament", "Plaquette en aluminium"],
+                "tags": ["plaquette", "médicament", "aluminium", "métal"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Ne lavez pas les contenants, videz-les simplement.",
+            "Déposez-les dans le bac jaune."
+        ],
+        "exceptions": [
+            "Pas de boîtes contenant des produits dangereux.",
+            "Ne pas imbriquer des déchets (ex. : ne pas mettre une bouteille plastique dans une boîte en métal)."
+        ],
+        "couleur_recipient": "Jaune (bac de tri)",
+        "points_collecte": [
+            "Bac de tri proche de chez vous."
+        ],
+        "emplacement": [
+            "Devant l'appartement",
+            "Bac de tri proche de chez vous"
+        ],
+        "recommendations": [
+            "Privilégiez les produits en vrac pour réduire les emballages en métal.",
+            "Récupérez et réutilisez les boîtes métalliques lorsque c'est possible."
+        ]
+    },
+    {
+        "id": "4",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Les emballages en papier et carton",
+        "produits": [
+            {
+                "nom": "Carton",
+                "synonymes": ["Carton d’emballage", "Boîte en carton"],
+                "tags": ["carton", "emballage", "recyclage"]
+            },
+            {
+                "nom": "Carton de pizza",
+                "synonymes": ["Boîte à pizza", "Emballage de pizza"],
+                "tags": ["carton", "pizza", "recyclage"]
+            },
+            {
+                "nom": "Boîte de céréales",
+                "synonymes": ["Emballage de céréales", "Carton de céréales"],
+                "tags": ["boîte", "céréales", "carton", "recyclage"]
+            },
+            {
+                "nom": "Suremballage en carton",
+                "synonymes": ["Film carton", "Emballage externe en carton"],
+                "tags": ["suremballage", "carton", "recyclage"]
+            },
+            {
+                "nom": "Brique de lait ou de jus de fruit",
+                "synonymes": ["Carton de lait", "Brique de jus"],
+                "tags": ["brique", "lait", "jus", "carton", "recyclage"]
+            },
+            {
+                "nom": "Rouleau de papier absorbant et hygiénique",
+                "synonymes": ["Papier essuie-tout", "Papier absorbant"],
+                "tags": ["rouleau", "papier", "absorbant", "hygiénique"]
+            },
+            {
+                "nom": "Papier de bureau",
+                "synonymes": ["Papier d’imprimante", "Feuilles de papier"],
+                "tags": ["papier", "bureau", "recyclage"]
+            },
+            {
+                "nom": "Journaux",
+                "synonymes": ["Presse écrite", "Journaux imprimés"],
+                "tags": ["journaux", "papier", "recyclage"]
+            },
+            {
+                "nom": "Prospectus",
+                "synonymes": ["Publicités imprimées", "Flyers"],
+                "tags": ["prospectus", "publicité", "papier", "recyclage"]
+            },
+            {
+                "nom": "Enveloppe",
+                "synonymes": ["Courrier papier", "Enveloppe recyclée"],
+                "tags": ["enveloppe", "papier", "courrier", "recyclage"]
+            },
+            {
+                "nom": "Sac en papier",
+                "synonymes": ["Sachet papier", "Sac recyclable"],
+                "tags": ["sac", "papier", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Pliez les cartons pour gagner de la place.",
+            "Mettez les emballages en vrac et pas dans un sac.",
+            "Videz bien le contenu des emballages."
+        ],
+        "exceptions": [
+            "Si le papier ou le carton est humide ou gras, le jeter dans le bac gris.",
+            "Ne pas imbriquer des déchets (ex. : ne pas mettre une bouteille plastique dans une boîte en carton)."
+        ],
+        "couleur_recipient": "Jaune (bac de tri)",
+        "points_collecte": [
+            "Bac de tri proche de chez vous."
+        ],
+        "emplacement": [
+            "Devant l'appartement",
+            "Bac de tri proche de chez vous"
+        ],
+        "recommendations": [
+            "Privilégiez l’utilisation de papier recyclé.",
+            "Réduisez les déchets en optant pour des produits sans suremballage.",
+            "Réutilisez les cartons pour le stockage ou le transport avant de les recycler."
+        ]
+    },{
+        "id": "5",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Déchets ménagers",
+        "produits": [
+            {
+                "nom": "Déchets d’hygiène (mouchoirs, sopalins utilisés, lingettes, cotons, coton-tige, couches, protections hygiéniques)",
+                "synonymes": ["Produits d'hygiène usagés", "Lingettes et mouchoirs jetables"],
+                "tags": ["déchets", "hygiène", "mouchoirs", "lingettes", "couches"]
+            },
+            {
+                "nom": "Petits objets en plastique (stylo, rasoir, brosse à dents)",
+                "synonymes": ["Petits plastiques jetables", "Stylo et rasoir usagés"],
+                "tags": ["plastique", "stylo", "rasoir", "brosse à dents"]
+            },
+            {
+                "nom": "Vaisselle cassée",
+                "synonymes": ["Débris de vaisselle", "Assiettes et plats cassés"],
+                "tags": ["vaisselle", "cassée", "débris"]
+            },
+            {
+                "nom": "Petits objets en bois (baguettes, boîtes de camembert, cagettes)",
+                "synonymes": ["Petits déchets en bois", "Objets en bois non recyclables"],
+                "tags": ["bois", "baguettes", "cagettes", "déchets"]
+            },
+            {
+                "nom": "Papier sulfurisé",
+                "synonymes": ["Papier cuisson usagé", "Papier alimentaire non recyclable"],
+                "tags": ["papier", "sulfurisé", "cuisson"]
+            },
+            {
+                "nom": "Déchets alimentaires non compostables ou mélangés à des emballages",
+                "synonymes": ["Restes alimentaires avec emballages", "Aliments non compostables"],
+                "tags": ["alimentaire", "non compostable", "emballages"]
+            },
+            {
+                "nom": "Masques jetables",
+                "synonymes": ["Masques chirurgicaux usagés", "Masques non recyclables"],
+                "tags": ["masques", "jetables", "hygiène", "déchets"]
+            }
+        ],
+        "action": "Incinération",
+        "instructions": [
+            "Placez ces déchets dans un sac fermé.",
+            "Déposez le sac dans le bac gris réservé aux ordures ménagères résiduelles.",
+            "Ne mélangez pas ces déchets avec des matières recyclables (plastique, métal, verre, etc.)."
+        ],
+        "exceptions": [
+            "Les produits recyclables doivent être triés et placés dans les bacs correspondants (ex. : bac jaune pour les plastiques et métaux).",
+            "Les déchets dangereux (produits toxiques, inflammables) doivent être déposés en déchèterie."
+        ],
+        "couleur_recipient": "Gris (bac gris pour les ordures ménagères résiduelles)",
+        "points_collecte": [
+            "Bac gris proche de votre domicile"
+        ],
+        "emplacement": [
+            "Devant votre maison ou appartement",
+            "Points de collecte réguliers pour les ordures ménagères"
+        ],
+        "recommendations": [
+            "Réduisez vos déchets ménagers en privilégiant des alternatives durables (ex. : lingettes réutilisables, cotons lavables).",
+            "Planifiez vos achats pour éviter les déchets inutiles.",
+            "Ne jetez pas les déchets recyclables ou compostables dans le bac gris."
+        ],
+        "avantages": [
+            "Les déchets ménagers sont valorisés énergétiquement par incinération.",
+            "L'énergie produite sert à chauffer les immeubles raccordés aux réseaux de chauffage urbain et à produire de l'électricité.",
+            "Chaque année, la Métropole incinère environ 380 000 tonnes de déchets pour produire 322 000 MWh d’énergie thermique et 83 000 MWh d’électricité."
+        ]
+    },{
+        "id": "6",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Déchets alimentaires",
+        "produits": [
+            {
+                "nom": "Épluchures de fruits et légumes",
+                "synonymes": ["Restes de légumes", "Peaux de fruits"],
+                "tags": ["épluchures", "fruits", "légumes", "compost"]
+            },
+            {
+                "nom": "Marc de café et thé",
+                "synonymes": ["Résidus de café", "Sachets de thé usagés"],
+                "tags": ["marc", "café", "thé", "compost"]
+            },
+            {
+                "nom": "Restes de repas",
+                "synonymes": ["Déchets alimentaires cuits", "Restes alimentaires"],
+                "tags": ["restes", "repas", "alimentaire", "compost"]
+            },
+            {
+                "nom": "Aliments périmés (sans emballage)",
+                "synonymes": ["Produits alimentaires expirés", "Nourriture périmée"],
+                "tags": ["aliments", "périmés", "compost", "alimentaire"]
+            },
+            {
+                "nom": "Fleurs fanées",
+                "synonymes": ["Bouquets fanés", "Déchets floraux"],
+                "tags": ["fleurs", "fanées", "compost", "déchets verts"]
+            },
+            {
+                "nom": "Petits déchets verts (herbes, feuilles)",
+                "synonymes": ["Feuilles mortes", "Résidus de jardinage"],
+                "tags": ["déchets verts", "herbes", "feuilles", "compost"]
+            }
+        ],
+        "action": "Gestion multiple (collecte dédiée, compostage ou incinération)",
+        "instructions": [
+            "Si un service de collecte des déchets alimentaires est disponible : utilisez les conteneurs dédiés.",
+            "Pour le compostage individuel : déposez les déchets dans un composteur adapté.",
+            "En l’absence d’autres options, placez les déchets dans un sac fermé dans le bac gris."
+        ],
+        "exceptions": [
+            "Les aliments emballés doivent être déballés avant le tri.",
+            "Les huiles de cuisson ou graisses animales ne doivent pas être déposées dans les composteurs ou conteneurs dédiés."
+        ],
+        "couleur_recipient": [
+            "Marron (conteneurs dédiés aux déchets alimentaires)",
+            "Gris (bac gris pour les ordures ménagères résiduelles)"
+        ],
+        "points_collecte": [
+            "Conteneurs dédiés à proximité des habitations",
+            "Composteurs individuels ou partagés",
+            "Bac gris pour les ordures ménagères"
+        ],
+        "recommendations": [
+            "Privilégiez le compostage pour valoriser les déchets alimentaires.",
+            "Planifiez vos repas pour réduire les restes.",
+            "Utilisez des sacs en papier kraft pour les déchets alimentaires si requis par les conteneurs."
+        ],
+        "avantages": [
+            "Réduction significative des déchets résiduels.",
+            "Valorisation sous forme de compost ou de biogaz.",
+            "Limitation des émissions liées à l’incinération."
+        ]
+    },
+    {
+        "id": "7",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Batteries",
+        "produits": [
+            {
+                "nom": "Batteries rechargeables",
+                "synonymes": ["Accumulateurs rechargeables", "Piles rechargeables"],
+                "tags": ["batteries", "rechargeables", "accumulateurs", "recyclage"]
+            },
+            {
+                "nom": "Batteries alcalines",
+                "synonymes": ["Piles alcalines", "Batteries standard"],
+                "tags": ["batteries", "alcalines", "piles", "recyclage"]
+            },
+            {
+                "nom": "Batteries au lithium",
+                "synonymes": ["Piles au lithium", "Accumulateurs au lithium"],
+                "tags": ["batteries", "lithium", "recyclage", "métaux"]
+            },
+            {
+                "nom": "Batteries de voiture",
+                "synonymes": ["Accumulateurs de voiture", "Batteries plomb-acide"],
+                "tags": ["batteries", "voiture", "plomb", "recyclage"]
+            },
+            {
+                "nom": "Batteries de télécommande",
+                "synonymes": ["Piles pour télécommande", "Batteries miniatures"],
+                "tags": ["batteries", "télécommande", "piles", "recyclage"]
+            },
+            {
+                "nom": "Batteries d'outils électriques",
+                "synonymes": ["Batteries pour perceuse", "Accumulateurs pour outils"],
+                "tags": ["batteries", "outils", "électriques", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Déposez les batteries dans les points de collecte dédiés, comme en magasin ou en déchèterie.",
+            "Évitez de mélanger les batteries usées avec d'autres types de déchets.",
+            "Conservez les batteries dans un contenant étanche pour éviter les fuites chimiques."
+        ],
+        "exceptions": [
+            "Ne jetez pas les batteries usées dans les bacs de tri ou de déchets ménagers.",
+            "Les batteries défectueuses ou endommagées doivent être manipulées avec précaution."
+        ],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous.",
+            "Magasins spécialisés avec collecte de batteries.",
+            "Points de recyclage dans les supermarchés."
+        ],
+        "recommendations": [
+            "Rassemblez vos batteries usées pour les déposer en une seule fois dans un point de collecte.",
+            "Évitez d’utiliser des batteries à usage unique et privilégiez les rechargeables.",
+            "Stockez les batteries dans un endroit sec et à l’abri de la chaleur avant de les recycler."
+        ],
+        "avantages": [
+            "Les batteries contiennent des métaux précieux comme le lithium et le cobalt, qui peuvent être recyclés.",
+            "Recycler les batteries réduit les risques de pollution des sols et des eaux souterraines.",
+            "Contribue à préserver les ressources naturelles en limitant l'extraction de nouveaux matériaux."
+        ]
+    },{
+        "id": "8",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Électroménager",
+        "produits": [
+            {
+                "nom": "Réfrigérateurs",
+                "synonymes": ["Frigos", "Appareils de refroidissement"],
+                "tags": ["réfrigérateur", "frigo", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Lave-vaisselle",
+                "synonymes": ["Machine à laver la vaisselle", "Appareil de lavage de vaisselle"],
+                "tags": ["lave-vaisselle", "vaisselle", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Lave-linge",
+                "synonymes": ["Machine à laver", "Appareil de lavage"],
+                "tags": ["lave-linge", "machine à laver", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Téléviseurs",
+                "synonymes": ["TV", "Écrans télé"],
+                "tags": ["téléviseur", "tv", "écrans", "recyclage"]
+            },
+            {
+                "nom": "Aspirateurs",
+                "synonymes": ["Appareils d'aspiration", "Nettoyeurs à aspiration"],
+                "tags": ["aspirateur", "nettoyage", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Fours micro-ondes",
+                "synonymes": ["Micro-ondes", "Fours électriques"],
+                "tags": ["four", "micro-ondes", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Grille-pain",
+                "synonymes": ["Toaster", "Appareil à griller"],
+                "tags": ["grille-pain", "toaster", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Mixeurs",
+                "synonymes": ["Blenders", "Appareils de mixage"],
+                "tags": ["mixeur", "blender", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Climatiseurs",
+                "synonymes": ["Appareils de climatisation", "Systèmes de refroidissement"],
+                "tags": ["climatiseur", "refroidissement", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Appareils de chauffage",
+                "synonymes": ["Radiateurs", "Chauffages électriques"],
+                "tags": ["chauffage", "radiateur", "recyclage", "électroménager"]
+            }
+        ],
+        "action": "Recyclage ou réemploi",
+        "instructions": [
+            "Déposez les appareils électriques usagés en déchèterie.",
+            "Certains appareils en état de marche peuvent être donnés dans les donneries pour réemploi.",
+            "Assurez-vous que les appareils sont débranchés et vides avant de les jeter."
+        ],
+        "exceptions": [
+            "Ne jetez pas les appareils électriques contenant des produits dangereux dans les bacs de tri.",
+            "Les appareils cassés ou incomplets nécessitent un traitement spécifique."
+        ],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous.",
+            "Donneries ou recycleries locales."
+        ],
+        "recommendations": [
+            "Donnez vos appareils en bon état aux associations ou recycleries pour leur offrir une seconde vie.",
+            "Privilégiez les réparations pour prolonger la durée de vie des appareils.",
+            "Regroupez vos appareils usagés pour réduire les déplacements lors du dépôt en déchèterie."
+        ],
+        "avantages": [
+            "Recycler l'électroménager permet de récupérer des matériaux précieux comme le cuivre, l'acier et le plastique.",
+            "Donner des appareils en bon état soutient les associations locales et réduit les déchets.",
+            "Le recyclage des appareils électriques réduit l'impact environnemental en limitant les déchets enfouis ou incinérés."
+        ]
+    },{
+        "id": "9",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Déchets verts",
+        "produits": [
+            {
+                "nom": "Souches d'arbres",
+                "synonymes": ["Racines d'arbres", "Troncs d'arbres coupés"],
+                "tags": ["souches", "arbres", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Taille de haies",
+                "synonymes": ["Déchets de haies", "Branches de haies"],
+                "tags": ["tailles", "haies", "jardinage", "déchets verts"]
+            },
+            {
+                "nom": "Tonte de gazon",
+                "synonymes": ["Herbe coupée", "Résidus de tonte"],
+                "tags": ["tonte", "gazon", "herbe", "déchets verts"]
+            },
+            {
+                "nom": "Feuilles mortes",
+                "synonymes": ["Feuilles sèches", "Déchets de feuilles"],
+                "tags": ["feuilles", "mortes", "sèches", "déchets verts"]
+            },
+            {
+                "nom": "Branches",
+                "synonymes": ["Bois de taille", "Rameaux"],
+                "tags": ["branches", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Fleurs fanées",
+                "synonymes": ["Bouquets fanés", "Fleurs sèches"],
+                "tags": ["fleurs", "fanées", "jardinage", "déchets verts"]
+            },
+            {
+                "nom": "Écorces",
+                "synonymes": ["Couches de bois", "Morceaux d'écorce"],
+                "tags": ["écorces", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Résidus de potager",
+                "synonymes": ["Déchets de jardin potager", "Restes de légumes"],
+                "tags": ["résidus", "potager", "déchets verts", "jardin"]
+            },
+            {
+                "nom": "Petites racines",
+                "synonymes": ["Racines coupées", "Débris racinaires"],
+                "tags": ["racines", "petites", "déchets verts"]
+            }
+        ],
+        "action": "Compostage ou valorisation",
+        "instructions": [
+            "Déposez les déchets verts en déchèterie.",
+            "Pensez au compostage domestique pour réduire les apports en déchèterie.",
+            "Évitez de brûler les déchets verts, car cela est interdit et polluant."
+        ],
+        "exceptions": [
+            "Ne mélangez pas les déchets verts avec d'autres types de déchets.",
+            "Ne pas brûler les déchets verts : les particules émises sont dangereuses pour la santé. Brûler 50 kg de déchets végétaux émet autant de poussières que 5 900 km parcourus avec une voiture diesel."
+        ],
+        "couleur_recipient": "Non applicable (collecte en déchèterie ou compostage)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous.",
+            "Composteurs locaux."
+        ],
+        "recommendations": [
+            "Privilégiez le compostage domestique pour réduire les transports.",
+            "Utilisez un broyeur pour réduire la taille des branches avant le compostage.",
+            "Évitez de mélanger des déchets verts contaminés (ex. : pesticides) avec d'autres résidus."
+        ],
+        "avantages": [
+            "Les déchets verts peuvent être transformés en compost pour fertiliser les sols.",
+            "Le compostage domestique réduit le transport et les émissions liées au traitement.",
+            "Contribue à réduire l'enfouissement et l'incinération des déchets organiques."
+        ]
+    },
+    {
+        "id": "10",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Produits dangereux",
+        "produits": [
+            {
+                "nom": "Produits corrosifs (acides, bases)",
+                "synonymes": ["Acides concentrés", "Bases caustiques"],
+                "tags": ["produits", "corrosifs", "acides", "bases", "dangereux"]
+            },
+            {
+                "nom": "Produits inflammables (solvants, essence)",
+                "synonymes": ["Solvants industriels", "Essence inflammable"],
+                "tags": ["produits", "inflammables", "solvants", "essence", "dangereux"]
+            },
+            {
+                "nom": "Produits toxiques (pesticides, herbicides)",
+                "synonymes": ["Produits phytosanitaires", "Substances toxiques"],
+                "tags": ["produits", "toxiques", "pesticides", "herbicides", "dangereux"]
+            },
+            {
+                "nom": "Peintures et vernis",
+                "synonymes": ["Peintures usagées", "Vernis à base de solvants"],
+                "tags": ["peintures", "vernis", "dangereux", "recyclage"]
+            },
+            {
+                "nom": "Aérosols contenant des produits chimiques",
+                "synonymes": ["Sprays chimiques", "Aérosols usagés"],
+                "tags": ["aérosols", "chimiques", "sprays", "dangereux"]
+            },
+            {
+                "nom": "Produits de nettoyage industriels",
+                "synonymes": ["Détergents industriels", "Nettoyants chimiques"],
+                "tags": ["produits", "nettoyage", "industriels", "dangereux"]
+            },
+            {
+                "nom": "Huiles usagées",
+                "synonymes": ["Huiles moteur usagées", "Huiles usées"],
+                "tags": ["huiles", "usagées", "moteur", "dangereux"]
+            },
+            {
+                "nom": "Ampoules fluorescentes",
+                "synonymes": ["Lampes fluorescentes", "Néons"],
+                "tags": ["ampoules", "fluorescentes", "néons", "dangereux"]
+            }
+        ],
+        "action": "Traitement spécialisé",
+        "instructions": [
+            "Apportez ces produits directement en déchèterie.",
+            "Conservez-les dans leur emballage d'origine pour éviter tout risque.",
+            "Manipulez ces produits avec précaution pour éviter les fuites ou les éclaboussures."
+        ],
+        "exceptions": [
+            "Ne videz pas ces produits dans les canalisations ou dans la nature.",
+            "Les emballages contaminés doivent être traités comme des déchets dangereux."
+        ],
+        "couleur_recipient": "Non applicable (collecte spécialisée)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous."
+        ],
+        "recommendations": [
+            "Stockez ces produits dans un endroit sec et sûr avant de les déposer en déchèterie.",
+            "Utilisez des équipements de protection (gants, lunettes) lors de leur manipulation.",
+            "Regroupez les dépôts pour réduire les trajets et minimiser l'impact environnemental."
+        ],
+        "avantages": [
+            "Un traitement spécialisé évite la pollution des sols et des eaux.",
+            "La collecte sécurisée garantit la protection de l'environnement.",
+            "Les matériaux réutilisables issus de ces produits peuvent être extraits pour valorisation.",
+            "Réduit les risques sanitaires liés aux produits toxiques."
+        ]
+    },
+    {
+        "id": "11",
+        "ville": "Grand Lyon Métropole",
+        "type_dechet": "Textiles et vêtements",
+        "produits": [
+            {
+                "nom": "Vêtements usagés",
+                "synonymes": ["Vêtements abîmés", "Vêtements inutilisables"],
+                "tags": ["vêtements", "usagés", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Chaussures",
+                "synonymes": ["Paires de chaussures usagées", "Souliers"],
+                "tags": ["chaussures", "souliers", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Linge de maison (draps, serviettes, rideaux)",
+                "synonymes": ["Draps usagés", "Serviettes de bain", "Rideaux"],
+                "tags": ["linge", "maison", "draps", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Accessoires en textile (sacs, ceintures, bonnets)",
+                "synonymes": ["Sacs en tissu", "Ceintures en textile", "Bonnets"],
+                "tags": ["accessoires", "sacs", "ceintures", "textiles"]
+            },
+            {
+                "nom": "Maroquinerie",
+                "synonymes": ["Sacs en cuir", "Produits en cuir"],
+                "tags": ["maroquinerie", "cuir", "sacs", "recyclage"]
+            },
+            {
+                "nom": "Articles en bon état ou légèrement abîmés",
+                "synonymes": ["Articles réutilisables", "Produits à donner"],
+                "tags": ["articles", "réemploi", "textiles", "recyclage"]
+            }
+        ],
+        "action": "Réemploi ou recyclage",
+        "instructions": [
+            "Déposez les textiles propres et secs dans les espaces dédiés en déchèterie.",
+            "Les textiles en bon état peuvent être donnés dans les associations partenaires pour le réemploi.",
+            "Pour des articles très abîmés ou inutilisables, assurez-vous qu'ils soient triés avant de les déposer."
+        ],
+        "exceptions": [
+            "Ne déposez pas de textiles mouillés ou souillés (ex. : graisse, peinture).",
+            "Les textiles contaminés doivent être jetés dans le bac gris pour ordures ménagères."
+        ],
+        "couleur_recipient": "Non applicable (espaces de tri en déchèterie)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous."
+        ],
+        "emplacement": [
+            "Espaces dédiés en déchèterie.",
+            "Bornes textiles spécifiques disponibles dans certaines déchèteries."
+        ],
+        "recommendations": [
+            "Avant de jeter, pensez à réutiliser ou donner vos textiles en bon état.",
+            "Pour limiter les déchets textiles, privilégiez les achats d'occasion ou réparez vos vêtements.",
+            "Séparez les textiles abîmés de ceux réemployables pour un tri efficace."
+        ],
+        "avantages": [
+            "Les textiles collectés en déchèterie sont recyclés pour produire des isolants thermiques ou acoustiques.",
+            "Les articles en bon état sont redistribués via des associations partenaires pour une seconde vie.",
+            "Réduire les textiles dans le bac gris limite les déchets incinérés et leur impact environnemental."
+        ]
+    }
+    
+
+    
+]

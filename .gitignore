@@ -162,5 +162,8 @@ cython_debug/
 #.idea/
 
 
-data/*
+# data/*
 .DS_Store
+old/*
+chromadb/*
+database/storage/*
