@@ -1,5 +1,3 @@
-import sqlite3
-
 import pandas as pd
 from rag_simulation.schema import Query
 
@@ -62,7 +60,7 @@ class MongoDB:
             {'$set': item},      # Update the item if it exists
             upsert=True          # Insert the item if it doesn't exist
         )
-        print("Inserted item with ID:", item['id'])
+        # print("Inserted item with ID:", item['id'])
     
     def query_collection(self, db_name: str, collection_name: str, query: dict):
         """
@@ -97,7 +95,7 @@ class MongoDB:
                             raise ValueError(f"Missing field '{field}' in item with ID: {item['id']}")
                     self.insert_item(self.db_name, self.collection_name, item)
         
-        print(f"Data from all JSON files in '{self.data_dir}' verified and inserted into MongoDB collection '{self.collection_name}' if not already present")
+        # print(f"Data from all JSON files in '{self.data_dir}' verified and inserted into MongoDB collection '{self.collection_name}' if not already present")
 
 
 class SQLDatabase:
@@ -106,70 +104,58 @@ class SQLDatabase:
         Initializes the SQLDatabase instance with the given database name.
 
         Args:
-            db_name (str): The name of the SQLite database file.
+            db_name (str): The name of the PostgreSQL database.
         """
         self.con = None
         self.cursor = None
         self.db_name = db_name
+        self.connect_to_postgresql()
 
-    def check_table_existence(self) -> None:
+    def connect_to_postgresql(self):
         """
-        Checks if the 'chatbot_history' table exists in the database. If it doesn't, it creates it.
+        Connects to the PostgreSQL database.
         """
         try:
             self.con = psycopg2.connect(
                 dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
                 user=os.getenv('POSTGRES_USER', 'llm'),
                 password=os.getenv('POSTGRES_PASSWORD', 'llm'),
-                host=os.getenv('POSTGRES_HOST', 'localhost'),
-                port=os.getenv('POSTGRES_PORT', 32003)
+                host=os.getenv('POSTGRES_HOST', 'llmPostgres'),  # Use the correct service name
+                port=os.getenv('POSTGRES_PORT', 5432)  # Use the correct port
             )
+            self.cursor = self.con.cursor()
             print("Connected to PostgreSQL database")
         except Exception as e:
             print(f"Failed to connect to PostgreSQL: {e}")
-            print("Falling back to SQLite")
-            self.con = sqlite3.connect(f"./database/storage/{self.db_name}.db")
-        self.cursor = self.con.cursor()
-        self.cursor.execute(
-            """
-            SELECT name 
-            FROM sqlite_master 
-            WHERE type='table' AND name=?;
-        """,
-            ("chatbot_history",),
-        )
-        table_exists = self.cursor.fetchone()
-        if not table_exists:
-            self.create_table()
+            raise
+
+    def check_table_existence(self) -> None:
+        """
+        Checks if the 'chatbot_history' table exists in the database. If it doesn't, it creates it.
+        """
+        try:
+            self.cursor.execute(
+                """
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema='public' AND table_name=%s;
+                """,
+                ("chatbot_history",),
+            )
+            table_exists = self.cursor.fetchone()
+            if not table_exists:
+                self.create_table()
+        except psycopg2.Error as e:
+            print(f"Error checking table existence: {e}")
+            self.con.rollback()
+            raise
 
     def create_table(self) -> None:
         """
         Creates the 'chatbot_history' table in the database with predefined columns.
         """
-        self.con = sqlite3.connect(f"./database/storage/{self.db_name}.db")
-        self.cursor = self.con.cursor()
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS chatbot_history (
-            query_id TEXT PRIMARY KEY,
-            query TEXT NOT NULL,
-            answer TEXT NOT NULL,
-            embedding_model TEXT NOT NULL,
-            generative_model TEXT NOT NULL,
-            context REAL NOT NULL,
-            year INT,
-            month INT,
-            day INT,
-            hour INT,
-            minutes INT,
-            safe BOOLEAN DEFAULT 0,
-            latency REAL NOT NULL,
-            completion_tokens INTEGER NOT NULL,
-            prompt_tokens INTEGER NOT NULL,
-            query_price REAL NOT NULL,
-            energy_usage REAL,
-            gwp REAL
-        )
-        """
+        with open('/Users/halcolo/Documents/code/lyon2/MASTER 2/LLM/RePilot-recycle-chatbot/sql/init.sql', 'r') as file:
+            create_table_query = file.read()
         self.cursor.execute(create_table_query)
         self.con.commit()
         print("Table 'chatbot_history' created successfully.")
@@ -181,8 +167,6 @@ class SQLDatabase:
         Args:
             query (Query): An instance of the Query class containing query details.
         """
-        self.con = sqlite3.connect(f"./database/storage/{self.db_name}.db")
-        self.cursor = self.con.cursor()
         self.check_table_existence()
 
         # Extract year, month, day, hour, and minute from the timestamp
@@ -199,7 +183,7 @@ class SQLDatabase:
             year, month, day, hour, minutes, safe, latency, 
             completion_tokens, prompt_tokens, query_price,
             energy_usage, gwp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         self.cursor.execute(
@@ -210,7 +194,7 @@ class SQLDatabase:
                 query.answer,
                 query.embedding_model,
                 query.generative_model,
-                query.context,
+                str(query.context),  # Ensure context is a string
                 year,
                 month,
                 day,
@@ -226,8 +210,7 @@ class SQLDatabase:
             ),
         )
         self.con.commit()
-        print(f"Query added successfully.")
-        self.con.close()
+        print("Query added successfully.")
 
     def ask_db(self, sql_query: str) -> pd.DataFrame:
         """
@@ -239,9 +222,7 @@ class SQLDatabase:
         Returns:
             pd.DataFrame: The result of the query.
         """
-        self.con = sqlite3.connect(f"./database/storage/{self.db_name}.db")
         df_query: pd.DataFrame = pd.read_sql_query(sql_query, self.con)
-        self.con.close()
         return df_query
 
 

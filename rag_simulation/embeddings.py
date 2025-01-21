@@ -1,6 +1,10 @@
+import os
 import numpy as np
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
+
+# Set the cache directory to a writable location
+os.environ["TRANSFORMERS_CACHE"] = "/tmp/huggingface_cache"
 
 # Initialize the model once to avoid repeated loading
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")

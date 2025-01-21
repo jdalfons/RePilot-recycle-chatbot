@@ -82,7 +82,7 @@ class SimpleRAG:
             ]
         )
         indices_of_max_values = np.argsort(cos_dist_list)[-self.top_n :][::-1]
-        print(indices_of_max_values)
+        # print(indices_of_max_values)
         return [corpus[i] for i in indices_of_max_values]
 
     def build_prompt(
