@@ -1,0 +1,609 @@
+[
+    {
+        "id": "1",
+        "ville": "Paris",
+        "type_dechet": "Papiers, emballages en carton, métal et plastique",
+        "produits": [
+            {
+                "nom": "Bouteille en plastique",
+                "synonymes": ["Récipient jetable en plastique", "Bouteille recyclable"],
+                "tags": ["bouteille", "plastique", "recyclage"]
+            },
+            {
+                "nom": "Emballage en carton",
+                "synonymes": ["Boîte en carton", "Carton recyclable"],
+                "tags": ["carton", "emballage", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Séparez les papiers, emballages en carton, métal et plastique les uns des autres et ne les mettez pas dans un sac.",
+            "Les emballages doivent être déposés en vrac et ne pas être imbriqués les uns dans les autres ou enfermés dans un sac."
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Jaune (bac de tri)",
+        "points_collecte": [
+            "Bac de tri proche de chez vous.",
+            "Trilib' https://www.paris.fr/recherche/lieux?types=trilib"
+        ],
+        "emplacement": [
+            "Dans la ville",
+            "Bac de tri proche de chez vous"
+        ]
+    },
+    {
+        "id": "2",
+        "ville": "Paris",
+        "type_dechet": "Verre",
+        "produits": [
+            {
+                "nom": "Bouteille en verre",
+                "synonymes": ["Récipient en verre", "Bouteille recyclable"],
+                "tags": ["verre", "bouteille", "recyclage"]
+            },
+            {
+                "nom": "Bocal en verre",
+                "synonymes": ["Pot en verre", "Récipient alimentaire en verre"],
+                "tags": ["bocal", "verre", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Déposez les bouteilles, bocaux et pots en verre bien vidés dans le bac blanc ou une colonne à verre.",
+            "Il y a aujourd'hui plus d'un millier de colonnes à verre installées sur la voie publique, en surface, et 70 colonnes à verre enterrées."
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Blanc (bac ou colonne à verre)",
+        "points_collecte": [
+            "Bac blanc proche de chez vous.",
+            "Trilib’ https://www.paris.fr/recherche/lieux?types=trilib"
+        ],
+        "emplacement": [
+            "Dans la ville",
+            "Proche de chez vous"
+        ]
+    },
+    {
+        "id": "3",
+        "ville": "Paris",
+        "type_dechet": "Déchets alimentaires",
+        "produits": [
+            {
+            "nom": "Epluchures de légumes",
+            "synonymes": ["Restes de légumes", "Déchets organiques"],
+            "tags": ["légumes", "organique", "compost"]
+            },
+            {
+            "nom": "Restes de fruits",
+            "synonymes": ["Pelures de fruits", "Déchets de fruits"],
+            "tags": ["fruits", "organique", "compost"]
+            },
+            {
+            "nom": "Découpes de viande",
+            "synonymes": ["Restes de viande", "Déchets de viande"],
+            "tags": ["viande", "organique"]
+            },
+            {
+            "nom": "Découpes de poisson",
+            "synonymes": ["Restes de poisson", "Déchets de poisson"],
+            "tags": ["poisson", "organique"]
+            },
+            {
+            "nom": "Restes de crustacés",
+            "synonymes": ["Déchets de crustacés", "Restes de fruits de mer"],
+            "tags": ["crustacés", "organique"]
+            },
+            {
+            "nom": "Restes de repas",
+            "synonymes": ["Déchets de repas", "Restes alimentaires"],
+            "tags": ["repas", "organique", "compost"]
+            },
+            {
+            "nom": "Déchets verts du jardin",
+            "synonymes": ["Feuilles mortes", "Feuilles aromatiques"],
+            "tags": ["jardin", "organique", "compost"]
+            },
+            {
+            "nom": "Produits alimentaires périmés",
+            "synonymes": ["Aliments périmés", "Déchets alimentaires"],
+            "tags": ["périmé", "organique", "compost"]
+            }
+        ],
+        "action": "Compostage",
+        "instructions": [
+            "Mettez les déchets alimentaires en vrac ou dans un sac compostable ou kraft dans la borne marron."
+        ],
+        "exceptions": 
+        [
+            "Attention, les déchets de jardinage ne sont pas acceptés dans les bornes pour déchets alimentaires. En effet, les déchets ligneux du type branchages, tiges et résidus de taille peuvent compromettre le processus de méthanisation.",
+            "Il en est de même pour les déchets de préparation liquide tels que les sauces ou les soupes. En effet, les quantités jetées peuvent nuire à la propreté des bornes",
+            "Pas de compostage ou lombripostage pour les déchets de viande, de poisson et de crustacés."
+        ],
+        "couleur_recipient": "Marron (borne marron)",
+        "points_collecte": [
+            "Borne marron proche de chez vous.",
+            "Trilib’ https://www.paris.fr/recherche/lieux?types=trilib"
+        ],
+        "emplacement": [
+            "Dans la ville",
+            "Proche de chez vous"
+        ]
+    },
+    {
+        "id": "4",
+        "ville": "Paris",
+        "type_dechet": "Déchets non recyclables",
+        "produits": [
+            {
+                "nom": "Vaisselle cassée",
+                "synonymes": ["Assiettes brisées", "Tasses cassées"],
+                "tags": ["vaisselle", "déchets", "non recyclable"]
+            },
+            {
+                "nom": "Sac plastique non recyclable",
+                "synonymes": ["Sac fin en plastique", "Sac non triable"],
+                "tags": ["sac", "plastique", "non recyclable"]
+            }
+        ],
+        "action": "Déchetterie",
+        "instructions": [
+            "Ce qui reste après avoir fait le tri doit être jeté dans le bac vert ou gris."
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Vert ou gris (bac de déchets non recyclables)",
+        "points_collecte": [
+            "Bac vert ou gris proche de chez vous."
+        ],
+        "emplacement": [
+            "Dans la ville",
+            "Proche de chez vous"
+        ]
+    },
+    {
+        "id": "5",
+        "ville": "Paris",
+        "type_dechet": "Batteries",
+        "produits": [
+            {
+                "nom": "Batteries rechargeables",
+                "synonymes": ["Accumulateurs rechargeables", "Piles rechargeables"],
+                "tags": ["batteries", "rechargeables", "accumulateurs", "recyclage"]
+            },
+            {
+                "nom": "Batteries alcalines",
+                "synonymes": ["Piles alcalines", "Batteries standard"],
+                "tags": ["batteries", "alcalines", "piles", "recyclage"]
+            },
+            {
+                "nom": "Batteries au lithium",
+                "synonymes": ["Piles au lithium", "Accumulateurs au lithium"],
+                "tags": ["batteries", "lithium", "recyclage", "métaux"]
+            },
+            {
+                "nom": "Batteries de voiture",
+                "synonymes": ["Accumulateurs de voiture", "Batteries plomb-acide"],
+                "tags": ["batteries", "voiture", "plomb", "recyclage"]
+            },
+            {
+                "nom": "Batteries de télécommande",
+                "synonymes": ["Piles pour télécommande", "Batteries miniatures"],
+                "tags": ["batteries", "télécommande", "piles", "recyclage"]
+            },
+            {
+                "nom": "Batteries d'outils électriques",
+                "synonymes": ["Batteries pour perceuse", "Accumulateurs pour outils"],
+                "tags": ["batteries", "outils", "électriques", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Déposez les batteries dans les points de collecte dédiés, comme en magasin ou en déchèterie.",
+            "Évitez de mélanger les batteries usées avec d'autres types de déchets.",
+            "Conservez les batteries dans un contenant étanche pour éviter les fuites chimiques."
+        ],
+        "exceptions": [
+            "Ne jetez pas les batteries usées dans les bacs de tri ou de déchets ménagers.",
+            "Les batteries défectueuses ou endommagées doivent être manipulées avec précaution."
+        ],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Déchèterie la plus proche de chez vous. https://www.paris.fr/lieux/espaces-tri-decheteries/tous-les-horaires",
+            "Magasins spécialisés avec collecte de batteries.",
+            "Points de recyclage dans les supermarchés. https://www.jerecyclemespiles.com/",
+            "Trimobiles https://www.paris.fr/pages/avec-le-trimobile-deposez-vos-petits-encombrants-6058" 
+        ],
+        "recommendations": [
+            "Rassemblez vos batteries usées pour les déposer en une seule fois dans un point de collecte.",
+            "Évitez d’utiliser des batteries à usage unique et privilégiez les rechargeables.",
+            "Stockez les batteries dans un endroit sec et à l’abri de la chaleur avant de les recycler."
+        ],
+        "avantages": [
+            "Les batteries contiennent des métaux précieux comme le lithium et le cobalt, qui peuvent être recyclés.",
+            "Recycler les batteries réduit les risques de pollution des sols et des eaux souterraines.",
+            "Contribue à préserver les ressources naturelles en limitant l'extraction de nouveaux matériaux."
+        ]
+    },
+    {
+        "id": "6",
+        "ville": "Paris",
+        "type_dechet": "Déchets électroménagers",
+        "produits": [
+            {
+                "nom": "Réfrigérateurs",
+                "synonymes": ["Frigos", "Appareils de refroidissement"],
+                "tags": ["réfrigérateur", "frigo", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Lave-vaisselle",
+                "synonymes": ["Machine à laver la vaisselle", "Appareil de lavage de vaisselle"],
+                "tags": ["lave-vaisselle", "vaisselle", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Lave-linge",
+                "synonymes": ["Machine à laver", "Appareil de lavage"],
+                "tags": ["lave-linge", "machine à laver", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Téléviseurs",
+                "synonymes": ["TV", "Écrans télé"],
+                "tags": ["téléviseur", "tv", "écrans", "recyclage"]
+            },
+            {
+                "nom": "Aspirateurs",
+                "synonymes": ["Appareils d'aspiration", "Nettoyeurs à aspiration"],
+                "tags": ["aspirateur", "nettoyage", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Fours micro-ondes",
+                "synonymes": ["Micro-ondes", "Fours électriques"],
+                "tags": ["four", "micro-ondes", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Grille-pain",
+                "synonymes": ["Toaster", "Appareil à griller"],
+                "tags": ["grille-pain", "toaster", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Mixeurs",
+                "synonymes": ["Blenders", "Appareils de mixage"],
+                "tags": ["mixeur", "blender", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Climatiseurs",
+                "synonymes": ["Appareils de climatisation", "Systèmes de refroidissement"],
+                "tags": ["climatiseur", "refroidissement", "recyclage", "électroménager"]
+            },
+            {
+                "nom": "Appareils de chauffage",
+                "synonymes": ["Radiateurs", "Chauffages électriques"],
+                "tags": ["chauffage", "radiateur", "recyclage", "électroménager"]
+            }
+        ],
+        "action": "Recyclage, réparation ou déchetterie",
+        "instructions": [
+            " Le gros électroménager est collecté à votre domicile gratuitement par notre partenaire écosystem. Cette solution préserve l'environnement en évitant leur dégradation sur le trottoir.",
+            "Prendre rendez vous sur le site jedonnemonelectromenager.fr",
+            "Les encombrants autres que le gros électroménager sont collectés sur le trottoir en bas de chez vous par les services propreté de la ville de Paris (dépôt de 3m3 maximum)",
+            "Ce service ne concerne ni les déchets dangereux (peinture, solvant...), ni certains déchets spécifiques (déchets de chantier / gravats, batteries, pneus...), ni les cartons",
+            "Vous jetez des objets infestés par des punaises de lit ? Au lieu de les jeter, avez-vous pensé à les faire traiter par une entreprise spécialisée de désinsectisation, sinon obligation de les fermer hermétiquement",
+            "S'ils sont en état de marche, le mieux est de les confier à une ressourcerie ou une recyclerie afin qu'ils aient une deuxième vie."
+        ],
+
+        "exceptions": [],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Ressourceries https://www.paris.fr/pages/ressourceries-recycleries-les-lieux-du-reemploi-a-paris-6016",
+            "Recycleries",
+            "Points de vente",
+            "Déchèteries https://www.paris.fr/lieux/espaces-tri-decheteries/tous-les-horaires",
+            "Collectes solidaires https://www.paris.fr/pages/les-collectes-solidaires-d-appareils-electriques-et-electroniques-7325",
+            "Enlèvement gratuit à domicile ou en pied d'immeuble https://teleservices.paris.fr/ramen/",
+            "Trimobiles https://www.paris.fr/pages/avec-le-trimobile-deposez-vos-petits-encombrants-6058"
+        ]
+    },
+    {
+        "id": "7",
+        "ville": "Paris",
+        "type_dechet": "Déchets verts",
+        "produits": [
+            {
+                "nom": "Souches d'arbres",
+                "synonymes": ["Racines d'arbres", "Troncs d'arbres coupés"],
+                "tags": ["souches", "arbres", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Taille de haies",
+                "synonymes": ["Déchets de haies", "Branches de haies"],
+                "tags": ["tailles", "haies", "jardinage", "déchets verts"]
+            },
+            {
+                "nom": "Tonte de gazon",
+                "synonymes": ["Herbe coupée", "Résidus de tonte"],
+                "tags": ["tonte", "gazon", "herbe", "déchets verts"]
+            },
+            {
+                "nom": "Feuilles mortes",
+                "synonymes": ["Feuilles sèches", "Déchets de feuilles"],
+                "tags": ["feuilles", "mortes", "sèches", "déchets verts"]
+            },
+            {
+                "nom": "Branches",
+                "synonymes": ["Bois de taille", "Rameaux"],
+                "tags": ["branches", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Fleurs fanées",
+                "synonymes": ["Bouquets fanés", "Fleurs sèches"],
+                "tags": ["fleurs", "fanées", "jardinage", "déchets verts"]
+            },
+            {
+                "nom": "Écorces",
+                "synonymes": ["Couches de bois", "Morceaux d'écorce"],
+                "tags": ["écorces", "bois", "déchets verts"]
+            },
+            {
+                "nom": "Résidus de potager",
+                "synonymes": ["Déchets de jardin potager", "Restes de légumes"],
+                "tags": ["résidus", "potager", "déchets verts", "jardin"]
+            },
+            {
+                "nom": "Petites racines",
+                "synonymes": ["Racines coupées", "Débris racinaires"],
+                "tags": ["racines", "petites", "déchets verts"]
+            }
+        ],
+        "action": "Compostage ou valorisation",
+        "instructions": [
+            "Déposez les déchets verts en déchèterie.",
+            "Pensez au compostage domestique pour réduire les apports en déchèterie.",
+            "Évitez de brûler les déchets verts, car cela est interdit et polluant.",
+            "Les Parisiens peuvent déposer leurs déchets végétaux dans les déchèteries de Saint-Ouen, ou Déchéterie de Romainville",
+            "Pour accéder à ces déchèteries, il est nécessaire de présenter un justificatif de domicile de moins de 3 mois + d’une pièce d’identité.",
+            "Les déchets verts sont compostés.",
+            "Les professionels sont interdis",
+            "Accès gratuit réservé aux particuliers résidant sur le territoire du SYCTOM.",
+            "30 passages par an – 2 passages par jour autorisés."
+
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Déchèteries de Saint-Ouen, ou Déchéterie de Romainville",
+            "Compostes collectifs https://www.paris.fr/pages/les-composteurs-collectifs-les-lieux-du-compostage-a-paris-6015"
+        ]
+    },
+    {
+        "id": "8",
+        "ville": "Paris",
+        "type_dechet": "Produits dangereux",
+        "produits": [
+            {
+            "nom": "Les acides",
+            "synonymes": ["Acide chlorhydrique", "Acide sulfurique", "Acide nitrique", "Acide fluorhydrique"],
+            "tags": ["acides", "dangereux"]
+            },
+            {
+            "nom": "Les bases",
+            "synonymes": ["Soude caustique", "Ammoniaque", "Potasse", "Carbonates", "Certaines amines"],
+            "tags": ["bases", "dangereux"]
+            },
+            {
+            "nom": "Les solvants organiques",
+            "synonymes": ["White-spirit", "Carburants", "Alcool", "Trichloréthylène"],
+            "tags": ["solvants", "organiques", "dangereux"]
+            },
+            {
+            "nom": "Les peintures et les vernis et leurs pots",
+            "synonymes": ["Peintures usagées", "Vernis à base de solvants"],
+            "tags": ["peintures", "vernis", "dangereux"]
+            },
+            {
+            "nom": "Les colles, résines",
+            "synonymes": ["Colles industrielles", "Résines chimiques"],
+            "tags": ["colles", "résines", "dangereux"]
+            },
+            {
+            "nom": "Les flaconnages de laboratoire",
+            "synonymes": ["Sels métalliques", "Minéraux toxiques", "Acides organiques"],
+            "tags": ["flaconnages", "laboratoire", "dangereux"]
+            },
+            {
+            "nom": "Les solutions ioniques",
+            "synonymes": ["Produits photographiques", "Perchlorure de fer"],
+            "tags": ["solutions", "ioniques", "dangereux"]
+            },
+            {
+            "nom": "Les phytosanitaires",
+            "synonymes": ["Engrais", "Fongicides", "Insecticides"],
+            "tags": ["phytosanitaires", "dangereux"]
+            },
+            {
+            "nom": "Les bouteilles de gaz et extincteurs",
+            "synonymes": ["Bouteilles de gaz", "Extincteurs"],
+            "tags": ["gaz", "extincteurs", "dangereux"]
+            },
+            {
+            "nom": "Les thermomètres à mercure",
+            "synonymes": ["Thermomètres au mercure"],
+            "tags": ["thermomètres", "mercure", "dangereux"]
+            },
+            {
+            "nom": "Les batteries et huiles de vidange",
+            "synonymes": ["Batteries usagées", "Huiles de vidange"],
+            "tags": ["batteries", "huiles", "vidange", "dangereux"]
+            }
+        ],
+        "action": "Traitement spécialisé",
+        "instructions": [
+            "Apportez ces produits directement en déchèterie.",
+            "Conservez-les dans leur emballage d'origine pour éviter tout risque.",
+            "Manipulez ces produits avec précaution pour éviter les fuites ou les éclaboussures.",
+            "Vous pouvez retrouvez toutes les informations utiles sur ces déchets sur le site d'EcoDDS, l'éco-organisme en charge des produits chimiques."
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Trois solutions s'offrent à vous pour vous débarrasser de vos déchets dangereux à Paris.",
+            "1 - Le Trimobile accepte les déchets dangereux spécifiques suivants : les produits dangereux de bricolage, de jardinage (peintures, solvants…), les déchets contenant du mercure, les extincteurs.",
+            "2 - Apport volontaire dans les cinq Déchèteries-Espaces tri suivantes pour les déchets acceptés au Trimobile, ainsi que les huiles de vidange, les batteries et les bouteilles de gaz :",
+            "Déchèterie-Espace Tri Quai d'Issy les Moulineaux",
+            "Déchèterie-Espace Tri Poterne des Peupliers",
+            "Déchèterie-Espace Tri Porte des Lilas",
+            "Déchèterie-Espace Tri de la Porte de la Chapelle",
+            "Déchèterie-Espace Tri de la Porte de Pantin",
+            "3- L'enlèvement à domicile",
+            "Cette collecte peut être réalisée au domicile des particuliers du lundi au vendredi, de 7h30 à 17h, sur rendez-vous. Il suffit de contacter, entre 9h et 17h30, le service concerné pour prendre un rendez-vous :",
+            "Direction de la Propreté et de l'Eau",
+            "Service technique de la Propreté de Paris",
+            "Cellule risques chimiques",
+            "Mail : dpe-stpp-fonc-risqueschimiques@paris.fr",
+            "Le délai moyen d'attente pour un rendez-vous est de quatre jours. Cette collecte est réalisée par du personnel formé, équipé d'un véhicule spécialisé. Pour chaque collecte, une fiche d'enlèvement de déchet toxique doit être signée par le demandeur qui doit en conserver un exemplaire.",
+            "Attention, en raison du contexte sanitaire, les modalités sont les suivantes :",
+            "- Les déchets doivent être déposés par les usagers sur la voie publique à l’arrivée des agents (un rendez-vous est pris avec une heure de passage). Les agents appelleront l’usager à leur arrivée afin que ce dernier vienne impérativement déposer ses déchets dangereux sur le trottoir).",
+            "- Les agents ne rentrent pas dans les appartements, immeubles, cours, jardins.",
+            "- Usagers et agents doivent impérativement respecter les règles de distanciation sociale et porter un masque."
+        ]
+    },
+    {
+        "id": "9",
+        "ville": "Paris",
+        "type_dechet": "Textiles et vêtements",
+        "produits": [
+            {
+                "nom": "Vêtements usagés",
+                "synonymes": ["Vêtements abîmés", "Vêtements inutilisables"],
+                "tags": ["vêtements", "usagés", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Chaussures",
+                "synonymes": ["Paires de chaussures usagées", "Souliers"],
+                "tags": ["chaussures", "souliers", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Linge de maison (draps, serviettes, rideaux)",
+                "synonymes": ["Draps usagés", "Serviettes de bain", "Rideaux"],
+                "tags": ["linge", "maison", "draps", "textiles", "recyclage"]
+            },
+            {
+                "nom": "Accessoires en textile (sacs, ceintures, bonnets)",
+                "synonymes": ["Sacs en tissu", "Ceintures en textile", "Bonnets"],
+                "tags": ["accessoires", "sacs", "ceintures", "textiles"]
+            },
+            {
+                "nom": "Maroquinerie",
+                "synonymes": ["Sacs en cuir", "Produits en cuir"],
+                "tags": ["maroquinerie", "cuir", "sacs", "recyclage"]
+            },
+            {
+                "nom": "Articles en bon état ou légèrement abîmés",
+                "synonymes": ["Articles réutilisables", "Produits à donner"],
+                "tags": ["articles", "réemploi", "textiles", "recyclage"]
+            }
+        ],
+        "action": "Réemploi ou recyclage",
+        "instructions": [
+            "Tous les TLC usagés (Textiles d’habillement, Linge de maison et Chaussures) peuvent être rapportés pour être valorisés, quel que soit leur état, même abîmés",
+            "Les textiles doivent être placés propres et secs dans un sac fermé et les chaussures liées par paire",
+            "Mais n'oubliez pas, vous avez toujours la possibilité de (faire) réparer vos vêtements et chaussures usagés avant de les déposer dans les bornes !"
+        ],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Ressourceries, recycleries https://www.paris.fr/pages/ressourceries-recycleries-les-lieux-du-reemploi-a-paris-6016",
+            "Conteneurs textile https://refashion.fr/citoyen/fr/point-dapport",
+            "Collectes solidaires https://www.paris.fr/pages/les-collectes-solidaires-d-appareils-electriques-et-electroniques-7325",
+            "Trimobile https://www.paris.fr/pages/avec-le-trimobile-deposez-vos-petits-encombrants-6058",
+            "Déchèteries https://www.paris.fr/lieux/espaces-tri-decheteries/tous-les-horaires"
+        ]
+    },
+    {
+        "id": "10",
+        "ville": "Paris",
+        "type_dechet": "Ampoules",
+        "produits": [
+            {
+                "nom": "Ampoules LED",
+                "synonymes": ["Ampoules basse consommation", "Ampoules à diode électroluminescente"],
+                "tags": ["ampoules", "LED", "recyclage"]
+            },
+            {
+                "nom": "Ampoules fluocompactes",
+                "synonymes": ["Ampoules basse consommation", "Ampoules CFL"],
+                "tags": ["ampoules", "fluocompactes", "recyclage"]
+            },
+            {
+                "nom": "Ampoules halogènes",
+                "synonymes": ["Ampoules à halogène", "Ampoules incandescentes"],
+                "tags": ["ampoules", "halogènes", "recyclage"]
+            }
+        ],
+        "action": "Recyclage",
+        "instructions": [
+            "Déposez les ampoules usagées dans les points de collecte dédiés, comme en magasin ou en déchèterie.",
+            "Ne jetez pas les ampoules usagées dans les bacs de tri ou de déchets ménagers.",
+            "Le symbole « poubelle barrée » figurant obligatoirement depuis le 13 août 2005 sur la lampe signifie qu’elle ne doit pas être jetée avec les ordures ménagères."
+        ],
+        "exceptions": [
+            "Les ampoules à filament ne sont pas recyclables et doivent être jetées avec les déchets ménagers."
+        ],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Points de vente",
+            "Trimobile https://www.paris.fr/pages/avec-le-trimobile-deposez-vos-petits-encombrants-6058",
+            "Déchèteries https://www.paris.fr/lieux/espaces-tri-decheteries/tous-les-horaires"
+        ]
+    },
+    {
+        "id": "11",
+        "ville": "Paris",
+        "type_dechet": "Médicaments",
+        "produits": [
+            {
+                "nom": "Médicaments non utilisés",
+                "synonymes": ["Médicaments périmés", "Médicaments non consommés"],
+                "tags": ["médicaments", "périmés", "recyclage"]
+            }
+        ],
+        "action": "Collecte spécialisée",
+        "instructions": [
+            "Rapportez les médicaments non utilisés ou périmés à votre pharmacie.",
+            "Ne jetez pas les médicaments dans les toilettes ou les poubelles ménagères."
+        ],
+        "exceptions": [],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Pharmacies"
+        ]
+    },
+    {
+        "id": "12",
+        "ville": "Paris",
+        "type_dechet": "Déchets de soins en auto-médication, seringues",
+        "produits": [
+            {
+                "nom": "Seringues",
+                "synonymes": ["Aiguilles", "Lancettes"],
+                "tags": ["seringues", "aiguilles", "déchets médicaux"]
+            },
+            {
+                "nom": "Lancettes",
+                "synonymes": ["Aiguilles de prélèvement", "Aiguilles de test"],
+                "tags": ["lancettes", "aiguilles", "déchets médicaux"]
+            }
+        ],
+        "action": "Collecte spécialisée",
+        "instructions": [
+            "Placez les seringues et autres déchets de soins dans une boîte à aiguilles sécurisée.",
+            "Rapportez la boîte à aiguilles pleine à votre pharmacie ou laboratoire.",
+            "Ne surtout pas jeter le bac jaune car présente un risque pour les agents de collecte."
+        ],
+        "exceptions": ["Les radiographies contenant des sels d'argent, toxiques si incinérés",
+    "Elles peuvent être déposées dans les Déchèteries-Espaces tri , Points tri et dans les Trimobiles,",
+    "ou auprès de certaines organisations humanitaires comme l'Ordre de Malte"
+],
+        "couleur_recipient": "Non applicable (points de collecte spécialisés)",
+        "points_collecte": [
+            "Boîtes à aiguilles puis pharmacies et laboratoires",
+            "L’éco-organisme DASTRI https://www.dastri.fr/nous-collectons/"
+        ]
+    }
+]
