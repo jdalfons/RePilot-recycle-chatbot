@@ -120,8 +120,8 @@ class SQLDatabase:
                 dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
                 user=os.getenv('POSTGRES_USER', 'llm'),
                 password=os.getenv('POSTGRES_PASSWORD', 'llm'),
-                host=os.getenv('POSTGRES_HOST', 'llmPostgres'),  # Use the correct service name
-                port=os.getenv('POSTGRES_PORT', 5432)  # Use the correct port
+                host=os.getenv('POSTGRES_HOST', "localhost"),  # Use the correct service name
+                port=int(os.getenv('POSTGRES_PORT', "32003")) # 32003
             )
             self.cursor = self.con.cursor()
             print("Connected to PostgreSQL database")

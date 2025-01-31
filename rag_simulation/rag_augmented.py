@@ -125,8 +125,8 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {"role": "system", "content": history_prompt},
-            {"role": "system", "content": context_prompt},
+            {"role": "system", "content": history_prompt}, # devrait plutôt être assistant ? (réponses antérieurs du model)
+            {"role": "system", "content": context_prompt}, # devrait plutôt être assistant ? (maintenir le contexte)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -212,12 +212,13 @@ class AugmentedRAG:
         Args:
             query (str): The input query to send to the LLM.
             context (List[str]): A list of strings providing the context for the LLM.
-            prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details.
+            prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details. (role from config.yml and chat history)
 
         Returns:
             Query: A Query object containing the response from the LLM and related data.
         """
         # Generate the response from the LLM using the provided prompt
+    
         chat_response: dict[str, Any] = self._generate(prompt_dict=prompt_dict)
         # Extract relevant information from the response
         latency = chat_response["latency_ms"]
@@ -294,16 +295,64 @@ class AugmentedRAG:
         """
         chunks = self.bdd.chroma_db.query(
             query_texts=[query],
-            n_results=self.top_n,
+            n_results=100 # Temporaire, on met 12 pour avoir plus de résultats
+            # n_results=self.top_n, # Mettre n_results limite le rag à 2 résultats, mais la similarité ne marche pas ce qui empêche le rag de fonctionner correctement
         )
+        # le self.top_n calcules la similarité cos entre les documents et le query, mais il a du mal à être précis, il renvoit toujours le même document(déchet dangereux)
+        # On enlève le self.top_n pour l'instant
         print("Chunks retrieved!")
+        # Travail debuggage, à retirer plus tard sur filtre ville
         chunks_list: list[str] = chunks["documents"][0]
+    
+        # chunks_list: list[str] = chunks["documents"][1] List index out of range
+        print("Chunks entier =====================", chunks) # {'ids': [['ville: Paris action: Traitement spécialisé couleur_recipient: etc..
+        print("Debug chunks_list", chunks_list) # Debug chunks_list ['6796411e9435b3c58c19d798', '6796411e9435b3c58c19d794'] ? avecchunks["documents"][0]
+
+        # chunks renvoit le document entier et chunks_list uniquement les IDs, il est plus pertinent de nourir le document entier au llm plutôt que les ID
+        # On envoit une quantité conséquente de données au llm, il faudrait revoir la fonction top_n afin qu'elle uniquement les documents les plus proches de la requête au lieu de tout
+
+        # peut-être trop de données, refaire le document paris_tri_json
         print("Building prompt...")
         prompt_rag = self.build_prompt(
-            context=chunks_list, history=str(history), query=query
+            context=chunks, history=str(history), query=query # On remplace chunks_list par chunks pour envoyer le document entier
+        ) # ici on utilise bien context, mais pas dans call_model ?
+
+        # response = self.call_model(
+        #     query=query, context=chunks, prompt_dict=prompt_rag
+        # ) 
+
+        # ################################## Build d'un prompt minimal en dur pour voir si réduire la quantité marche ##################################
+        contexte_dur = []
+        instruction_text = """Votre rôle est d'aider les utilisateurs à comprendre le processus de recyclage et de gestion des déchets en se basant uniquement sur les informations disponibles dans votre base de connaissances. Si un utilisateur pose une question qui dépasse les informations disponibles, répondez avec :
+
+        "Je suis désolé, mais ma fonction d'agent conversationnel est limitée aux données que j'ai en mémoire. Pour plus d'informations, je vous invite à contacter la mairie de votre localité."
+
+        Adoptez un ton professionnel, clair et engageant tout en vous assurant que vos réponses respectent les consignes suivantes :
+        - Précision : Appuyez-vous exclusivement sur les données disponibles.
+        - Accessibilité : Fournissez des explications compréhensibles par le grand public.
+        - Orientation : Lorsque les informations sont insuffisantes, guidez les utilisateurs vers les services municipaux compétents."""
+
+        prompt_dict_dur = [
+            {"role": "system", "content": instruction_text},
+            {"role": "user", "content": "Voici les instructions de tri :"},
+            {"role": "assistant", "content": "1. Trier les papiers, emballages en carton, métal et plastique dans le bac jaune ou Trilib'."},
+            {"role": "assistant", "content": "2. Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre."},
+            {"role": "assistant", "content": "3. Trier les déchets alimentaires dans le bac marron."},
+            {"role": "assistant", "content": "4. Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification."},
+            {"role": "user", "content": query}  # Doit obligatoirement finir par User or Tool
+        ]
+        contexte_dur.append(instruction_text)
+
+        response_dur = self.call_model(
+            query=query,
+            context=contexte_dur,
+            prompt_dict=prompt_dict_dur
         )
-        response = self.call_model(
-            query=query, context=chunks_list, prompt_dict=prompt_rag
-        )
-        db.add_query(query=response)
-        return self.get_response(response=response)
+        # call_model contient toutes les infos (nb input, consommation énergie, etc..)
+        # query (str): The input query to send to the LLM.
+        #     context (List[str]): A list of strings providing the context for the LLM. # Mettre à jour la doc ? On utilise pas context au final
+        #     prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details. (role from config.yml and chat history)
+        
+        # db.add_query(query=response)
+        return self.get_response(response_dur) # debugging
+        # return self.get_response(response=response) # get_response pour checker si safe ou pas
