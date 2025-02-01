@@ -19,5 +19,5 @@ COPY . .
 # Expose the port that Streamlit will run on
 EXPOSE 8503
 
-# Command to run the Streamlit app on port 8502
+# Command to run the Streamlit app on port 8503
 CMD ["streamlit", "run", "app.py", "--server.port=8503"]

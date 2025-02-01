@@ -127,6 +127,7 @@ class BDDChunks:
         for i in tqdm(range(len(divided_chunks))): 
             self.chroma_db.add(documents=divided_chunks[i], ids=divided_ids[i])
 
+
     def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
         
         mongoDb = MongoDB(
@@ -134,7 +135,10 @@ class BDDChunks:
             collection_name=collection, 
             host=host
             )
-        all_documents_list = mongoDb.query_collection(database, collection, dict())
+        
+        
+
+        all_documents_list = mongoDb.query_collection(database, collection, dict()) # version originale, dict pour tout prendre, est-ce que l'output est le même ?
         ids = [str(doc['_id']) for doc in all_documents_list]
         documents = [" ".join([f"{k}: {v}" for k, v in doc.items() if k != '_id' and k != 'id']) for doc in all_documents_list]
         
@@ -154,7 +158,7 @@ class BDDChunks:
         
         host = MONGO_HOST if MONGO_HOST != None else 'localhost'
 
-        ids, corpus = self.get_documents(host=host)
+        corpus, ids = self.get_documents(host=host)
         json_processor = JSONProcessor()
         chunks = [json_processor.clean_text(doc) for doc in corpus]
         self.chunks = chunks

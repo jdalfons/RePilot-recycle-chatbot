@@ -33,6 +33,7 @@ class AugmentedRAG:
         max_tokens: int,
         temperature: int,
         top_n: int = 2,
+        selected_city: str = "Grand Lyon Métropole",
     ) -> None:
         """
         Initializes the AugmentedRAG class with the provided parameters.
@@ -44,6 +45,7 @@ class AugmentedRAG:
             max_tokens (int): Maximum number of tokens to generate.
             temperature (int): The temperature setting for the generative model.
             top_n (int, optional): The number of top documents to retrieve. Defaults to 2.
+            selected_city (str, optional): The selected city for which to retrieve information. Defaults to "Grand Lyon Métropole".
         """
         self.llm = generation_model
         self.bdd = bdd_chunks
@@ -52,6 +54,7 @@ class AugmentedRAG:
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.db = db
+        self.selected_city = selected_city
 
     def get_cosim(self, a: NDArray[np.float32], b: NDArray[np.float32]) -> float:
         """
@@ -101,11 +104,32 @@ class AugmentedRAG:
 
         Args:
             context (str): The context information, typically extracted from books or other sources.
+            history (str): The history of the conversation so far.
             query (str): The user's query or question.
 
         Returns:
             list[dict[str, str]]: The RAG prompt in the OpenAI format
         """
+
+        # Ajout de contexte pour les villes en fonction de la ville choisi par l'utilisateur
+        contexte_couleur_bac_ville = ""
+        if self.selected_city == "Grand Lyon Métropole":
+            contexte_couleur_bac_ville = """
+            L'utilisateur se trouve à Grand Lyon Métropole.
+            Bac de couleur Vert pour déchets de type verre
+            Bac de couleur Jaune pour déchets de type plastique, papier et carton
+            Bac de couleur Gris pour déchets ménagers
+            Bac de couleur Marron pour déchets de type alimentaires
+            Pour le reste, dîtes a l'utilisateur que c'est non applicable"""
+
+        elif self.selected_city == "Paris":
+            contexte_couleur_bac_ville = """
+            L'utilisateur se trouve à Paris.
+            Trier les papiers, emballages en carton, métal et plastique dans le bac jaune ou Trilib.
+            Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre.
+            Trier les déchets alimentaires dans le bac marron.
+            Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification (non encombrant, dangereux, médicaments, batteries)."""
+        
         context_joined = "\n".join(context)
         system_prompt = self.role_prompt
         history_prompt = f"""
@@ -115,7 +139,7 @@ class AugmentedRAG:
         context_prompt = f"""
         Tu disposes de la section "Contexte" pour t'aider à répondre aux questions.
         # Contexte: 
-        {context_joined}
+        {context_joined + contexte_couleur_bac_ville}
         """
         query_prompt = f"""
         # Question:
@@ -125,8 +149,8 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {"role": "system", "content": history_prompt},
-            {"role": "system", "content": context_prompt},
+            {"role": "assistant", "content": history_prompt}, # devrait plutôt être assistant ? (réponses antérieurs du model)
+            {"role": "assistant", "content": context_prompt}, # devrait plutôt être assistant ? (maintenir le contexte)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -212,12 +236,13 @@ class AugmentedRAG:
         Args:
             query (str): The input query to send to the LLM.
             context (List[str]): A list of strings providing the context for the LLM.
-            prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details.
+            prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details. (role from config.yml and chat history)
 
         Returns:
             Query: A Query object containing the response from the LLM and related data.
         """
         # Generate the response from the LLM using the provided prompt
+    
         chat_response: dict[str, Any] = self._generate(prompt_dict=prompt_dict)
         # Extract relevant information from the response
         latency = chat_response["latency_ms"]
@@ -293,17 +318,25 @@ class AugmentedRAG:
             str: The generated response from the model.
         """
         chunks = self.bdd.chroma_db.query(
-            query_texts=[query],
-            n_results=self.top_n,
+            query_texts=[query + f" ville: {self.selected_city}"],
+            n_results=self.top_n, # Mettre n_results limite le rag à 2 résultats pour l'instant
         )
+        # le self.top_n calcules la similarité entre les documents et le query
         print("Chunks retrieved!")
+        
         chunks_list: list[str] = chunks["documents"][0]
+    
+        
+
         print("Building prompt...")
         prompt_rag = self.build_prompt(
-            context=chunks_list, history=str(history), query=query
-        )
+            context=chunks_list, history=str(history), query=query 
+        ) 
+
         response = self.call_model(
             query=query, context=chunks_list, prompt_dict=prompt_rag
-        )
-        db.add_query(query=response)
-        return self.get_response(response=response)
+        ) 
+
+        return self.get_response(response=response) 
+    
+        

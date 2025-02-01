@@ -1,0 +1,20 @@
+CREATE TABLE chatbot_history (
+    query_id TEXT PRIMARY KEY,
+    query TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    embedding_model TEXT,
+    generative_model TEXT,
+    context TEXT,
+    year INT,
+    month INT,
+    day INT,
+    hour INT,
+    minutes INT,
+    safe BOOLEAN,
+    latency REAL,
+    completion_tokens INTEGER,
+    prompt_tokens INTEGER,
+    query_price REAL,
+    energy_usage REAL,
+    gwp REAL
+);

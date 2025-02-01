@@ -9,7 +9,7 @@ from utils import Config
 
 config = Config('config.yml')
 config_chatbot = config.get_role_prompt()
-config_pdf = config.get_pdf_path()
+config_pdf = config.get_pdf_path() # Deprecated ?
 
 
 load_dotenv(find_dotenv())
@@ -21,12 +21,31 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# On regarde si la ville n'a pas déjà été sélectionné et mise en session
+if "ville_choisi" not in st.session_state:
+    st.session_state["ville_choisi"] = "Paris"
+
+# Add city selector
+st.session_state["ville_choisi"] = st.radio(
+    "Choisissez votre ville",
+    ["Paris", "Grand Lyon Métropole"],
+    index=0,
+    horizontal=True
+)
 
 @st.cache_resource  # cache_ressource permet de ne pas avoir à reload la fonction à chaque fois que l'on fait une action sur l'application
 def instantiate_bdd() -> BDDChunks:
     bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
     bdd()
     return bdd
+
+# On clear le cache pour relancer la fonction si la ville a changé
+if 'previous_city' not in st.session_state:
+    st.session_state['previous_city'] = st.session_state["ville_choisi"]
+
+if st.session_state['previous_city'] != st.session_state["ville_choisi"]:
+    st.cache_resource.clear()
+    st.session_state['previous_city'] = st.session_state["ville_choisi"]
 
 
 col1, col2 = st.columns([1, 2])
@@ -67,6 +86,7 @@ llm = AugmentedRAG(
     top_n=2,
     max_tokens=max_tokens,
     temperature=temperature,
+    selected_city=st.session_state["ville_choisi"],
 )
 
 if "messages" not in st.session_state:
