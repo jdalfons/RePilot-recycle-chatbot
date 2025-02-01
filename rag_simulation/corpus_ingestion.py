@@ -159,12 +159,8 @@ class BDDChunks:
         host = MONGO_HOST if MONGO_HOST != None else 'localhost'
 
         corpus, ids = self.get_documents(host=host)
-        # print("\n=== DEBUG OUTPUT ===")
-        # print(f"Total documents: {len(ids)}") # Si on se limite à Paris, on devrait avoir 12 documents, à Grand Lyon 11
-        # print("Affichage corpus call", corpus[0]) # Affichage corpus call 6796411e9435b3c58c19d78d # Est-ce normal ? Demandé à Juan
         json_processor = JSONProcessor()
         chunks = [json_processor.clean_text(doc) for doc in corpus]
-        # print("Affichage chunks call", chunks[0]) # Affichage chunks call
         self.chunks = chunks
         self.ids = ids  
         self._create_collection(path=self.path)
