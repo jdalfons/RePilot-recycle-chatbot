@@ -20,11 +20,21 @@ from utils import Config
 # Charger la configuration
 config = Config('config.yml')
 config_chatbot = config.get_role_prompt()
-
 # Charger les variables d’environnement
 load_dotenv(find_dotenv())
 
 
+# On regarde si la ville n'a pas déjà été sélectionné et mise en session
+if "ville_choisi" not in st.session_state:
+    st.session_state["ville_choisi"] = "Paris"
+
+# Add city selector
+st.session_state["ville_choisi"] = st.radio(
+    "Choisissez votre ville",
+    ["Paris", "Grand Lyon Métropole"],
+    index=0,
+    horizontal=True
+)
 
 @st.cache_resource
 def instantiate_bdd() -> BDDChunks:
@@ -33,9 +43,18 @@ def instantiate_bdd() -> BDDChunks:
     bdd()
     return bdd
 
-# Interface utilisateur
+
+# On clear le cache pour relancer la fonction si la ville a changé
+if 'previous_city' not in st.session_state:
+    st.session_state['previous_city'] = st.session_state["ville_choisi"]
+
+if st.session_state['previous_city'] != st.session_state["ville_choisi"]:
+    st.cache_resource.clear()
+    st.session_state['previous_city'] = st.session_state["ville_choisi"]
+
+
+
 col1, col2 = st.columns([1, 2])
-#st.sidebar.page_link("pages/quiz.py")
 with col1:
     generation_model = st.selectbox(
         label="Choisissez votre modèle LLM",
@@ -74,6 +93,7 @@ llm = AugmentedRAG(
     top_n=2,
     max_tokens=max_tokens,
     temperature=temperature,
+    selected_city=st.session_state["ville_choisi"],
 )
 
 # Gestion de l'historique des messages

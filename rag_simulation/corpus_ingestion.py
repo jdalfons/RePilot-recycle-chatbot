@@ -85,33 +85,37 @@ class BDDChunks:
             batch_size (int): Nombre de documents traités par lot.
         """
         if self.chroma_db is None:
-            raise RuntimeError("❌ La collection ChromaDB n'est pas initialisée !")
+          
+            raise RuntimeError("Must instantiate a ChromaDB collection first!")
+        if len(list_chunks) < batch_size:
+            batch_size_for_chromadb = len(list_chunks)
+        else:
+            batch_size_for_chromadb = batch_size
+        
+        # Divide ids and chunks into lists of max 160
+        divided_chunks = [list_chunks[i:i + 160] for i in range(0, len(list_chunks), 160)]
+        divided_ids = [ids[i:i + 160] for i in range(0, len(ids), 160)]
+        for i in tqdm(range(len(divided_chunks))): 
+            self.chroma_db.add(documents=divided_chunks[i], ids=divided_ids[i])
 
-        if not list_chunks:
-            logging.error("❌ Aucun chunk de texte à insérer !")
-            return
 
-        # Générer un UUID pour chaque document
-        chroma_ids = [str(uuid.uuid4()) for _ in ids]
-
-        # Générer explicitement les embeddings avant l'ajout dans ChromaDB
-        embeddings = self.embedding_model.encode(list_chunks, show_progress_bar=True)
-
-        # Ajouter les documents en batch
-        for i in tqdm(range(0, len(list_chunks), batch_size), desc="Ajout des embeddings dans ChromaDB"):
-            batch_chunks = list_chunks[i:i + batch_size]
-            batch_ids = chroma_ids[i:i + batch_size]
-            batch_embeddings = embeddings[i:i + batch_size]
-
-            logging.info(f"📤 Ajout du batch {i} à {i + batch_size} ({len(batch_chunks)} documents)")
-
-            self.chroma_db.add(
-                documents=batch_chunks,
-                ids=batch_ids,
-                embeddings=batch_embeddings
+    def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
+        
+        mongoDb = MongoDB(
+            db_name=database,
+            collection_name=collection, 
+            host=host
             )
+        
+        
 
-        logging.info(f"✅ {len(list_chunks)} documents ajoutés à ChromaDB avec succès !")
+        all_documents_list = mongoDb.query_collection(database, collection, dict()) # version originale, dict pour tout prendre, est-ce que l'output est le même ?
+        ids = [str(doc['_id']) for doc in all_documents_list]
+        documents = [" ".join([f"{k}: {v}" for k, v in doc.items() if k != '_id' and k != 'id']) for doc in all_documents_list]
+        
+        return documents, ids
+        
+        
 
     def __call__(self) -> None:
         """
@@ -121,11 +125,13 @@ class BDDChunks:
         3. Suppression et recréation d'une collection dans ChromaDB
         4. Ajout des embeddings
         """
+
         logging.info("🚀 Début du pipeline d'ingestion...")
 
         try:
+            host = MONGO_HOST if MONGO_HOST != None else 'localhost'
             # Récupérer les documents et les IDs
-            corpus, ids = self.get_documents()
+            corpus, ids = self.get_documents(host=host)
             logging.info(f"📂 {len(corpus)} documents récupérés depuis MongoDB")
 
             # Vérifications pour éviter les erreurs
@@ -138,10 +144,9 @@ class BDDChunks:
             json_processor = JSONProcessor()
             cleaned_texts = [json_processor.clean_text(doc) for doc in corpus]
             logging.info(f"📝 {len(cleaned_texts)} documents nettoyés.")
-
-            # Suppression et recréation de la collection ChromaDB
-            self.reset_chroma_collection()
-
+            self.chunks = chunks
+            self.ids = ids  
+            self._create_collection(path=self.path)
             # Ajout des embeddings
             self.add_embeddings(list_chunks=cleaned_texts, ids=ids)
 
@@ -150,3 +155,4 @@ class BDDChunks:
         except Exception as e:
             logging.error(f"❌ Erreur lors du pipeline d'ingestion : {e}")
             raise
+
