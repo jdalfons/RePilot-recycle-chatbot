@@ -33,7 +33,7 @@ class BDDChunks:
     - Add these chunks and their embeddings to the ChromaDB collection.
     """
 
-    def __init__(self, embedding_model: str, ville: str):
+    def __init__(self, embedding_model: str):
         """
         Initialize a BDDChunks instance.
 
@@ -52,7 +52,6 @@ class BDDChunks:
             model_name=embedding_model
         )
         self.chroma_db = None
-        self.ville = ville
 
     def _create_collection(self, path: str) -> None:
         """
@@ -128,7 +127,6 @@ class BDDChunks:
         for i in tqdm(range(len(divided_chunks))): 
             self.chroma_db.add(documents=divided_chunks[i], ids=divided_ids[i])
 
-    # Tentative d'empêcher que le RAG confonde Paris et Lyon, par défaut on essaye Paris mais plus tard faire un formulaire pour choisir entre Grand Lyon Métropole ou Paris
 
     def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
         
@@ -138,13 +136,9 @@ class BDDChunks:
             host=host
             )
         
-        # Ajout d'un filtre pour la ville
-        query_filter_ville = {"ville": self.ville} if self.ville else {}
+        
 
-        # all_documents_list = mongoDb.query_collection(database, collection, dict()) # version originale, dict pour tout prendre, est-ce que l'output est le même ?
-
-        all_documents_list = mongoDb.query_collection(database, collection, query_filter_ville)        # debugging
-        # print(all_documents_list) # [{'_id': ObjectId('6796411e9435b3c58c19d78d'), 'ville': 'Paris', 'id': '1', 'action': 'Recyclage' etc..
+        all_documents_list = mongoDb.query_collection(database, collection, dict()) # version originale, dict pour tout prendre, est-ce que l'output est le même ?
         ids = [str(doc['_id']) for doc in all_documents_list]
         documents = [" ".join([f"{k}: {v}" for k, v in doc.items() if k != '_id' and k != 'id']) for doc in all_documents_list]
         
@@ -164,13 +158,13 @@ class BDDChunks:
         
         host = MONGO_HOST if MONGO_HOST != None else 'localhost'
 
-        ids, corpus = self.get_documents(host=host)
-        print("\n=== DEBUG OUTPUT ===")
-        print(f"Total documents: {len(ids)}") # Si on se limite à Paris, on devrait avoir 12 documents, à Grand Lyon 11
-        print("Affichage corpus call", corpus[0]) # Affichage corpus call 6796411e9435b3c58c19d78d # Est-ce normal ? Demandé à Juan
+        corpus, ids = self.get_documents(host=host)
+        # print("\n=== DEBUG OUTPUT ===")
+        # print(f"Total documents: {len(ids)}") # Si on se limite à Paris, on devrait avoir 12 documents, à Grand Lyon 11
+        # print("Affichage corpus call", corpus[0]) # Affichage corpus call 6796411e9435b3c58c19d78d # Est-ce normal ? Demandé à Juan
         json_processor = JSONProcessor()
         chunks = [json_processor.clean_text(doc) for doc in corpus]
-        print("Affichage chunks call", chunks[0]) # Affichage chunks call 6796411e9435b3c58c19d782
+        # print("Affichage chunks call", chunks[0]) # Affichage chunks call
         self.chunks = chunks
         self.ids = ids  
         self._create_collection(path=self.path)

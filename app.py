@@ -35,8 +35,7 @@ st.session_state["ville_choisi"] = st.radio(
 
 @st.cache_resource  # cache_ressource permet de ne pas avoir à reload la fonction à chaque fois que l'on fait une action sur l'application
 def instantiate_bdd() -> BDDChunks:
-    bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2",
-                     ville = st.session_state["ville_choisi"]) # ville doit petre soit Paris, soit Grand Lyon Métropole
+    bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
     bdd()
     return bdd
 
@@ -87,6 +86,7 @@ llm = AugmentedRAG(
     top_n=2,
     max_tokens=max_tokens,
     temperature=temperature,
+    selected_city=st.session_state["ville_choisi"],
 )
 
 if "messages" not in st.session_state:

@@ -33,6 +33,7 @@ class AugmentedRAG:
         max_tokens: int,
         temperature: int,
         top_n: int = 2,
+        selected_city: str = "Grand Lyon Métropole",
     ) -> None:
         """
         Initializes the AugmentedRAG class with the provided parameters.
@@ -44,6 +45,7 @@ class AugmentedRAG:
             max_tokens (int): Maximum number of tokens to generate.
             temperature (int): The temperature setting for the generative model.
             top_n (int, optional): The number of top documents to retrieve. Defaults to 2.
+            selected_city (str, optional): The selected city for which to retrieve information. Defaults to "Grand Lyon Métropole".
         """
         self.llm = generation_model
         self.bdd = bdd_chunks
@@ -52,6 +54,7 @@ class AugmentedRAG:
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.db = db
+        self.selected_city = selected_city
 
     def get_cosim(self, a: NDArray[np.float32], b: NDArray[np.float32]) -> float:
         """
@@ -101,12 +104,33 @@ class AugmentedRAG:
 
         Args:
             context (str): The context information, typically extracted from books or other sources.
+            history (str): The history of the conversation so far.
             query (str): The user's query or question.
 
         Returns:
             list[dict[str, str]]: The RAG prompt in the OpenAI format
         """
+
+        contexte_couleur_bac_ville = ""
+        if self.selected_city == "Grand Lyon Métropole":
+            contexte_couleur_bac_ville = """
+            L'utilisateur se trouve à Grand Lyon Métropole.
+            Bac de couleur Vert pour déchets de type verre
+            Bac de couleur Jaune pour déchets de type plastique, papier et carton
+            Bac de couleur Gris pour déchets ménagers
+            Bac de couleur Marron pour déchets de type alimentaires
+            Pour le reste, dîtes a l'utilisateur que c'est non applicable"""
+
+        elif self.selected_city == "Paris":
+            contexte_couleur_bac_ville = """
+            L'utilisateur se trouve à Paris.
+            Trier les papiers, emballages en carton, métal et plastique dans le bac jaune ou Trilib.
+            Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre.
+            Trier les déchets alimentaires dans le bac marron.
+            Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification (non encombrant, dangereux, médicaments, batteries)."""
+        
         context_joined = "\n".join(context)
+        # print("context_joined =", context_joined)
         system_prompt = self.role_prompt
         history_prompt = f"""
         # Historique de conversation:
@@ -115,7 +139,7 @@ class AugmentedRAG:
         context_prompt = f"""
         Tu disposes de la section "Contexte" pour t'aider à répondre aux questions.
         # Contexte: 
-        {context_joined}
+        {context_joined + contexte_couleur_bac_ville}
         """
         query_prompt = f"""
         # Question:
@@ -125,8 +149,8 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {"role": "system", "content": history_prompt}, # devrait plutôt être assistant ? (réponses antérieurs du model)
-            {"role": "system", "content": context_prompt}, # devrait plutôt être assistant ? (maintenir le contexte)
+            {"role": "assistant", "content": history_prompt}, # devrait plutôt être assistant ? (réponses antérieurs du model)
+            {"role": "assistant", "content": context_prompt}, # devrait plutôt être assistant ? (maintenir le contexte)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -294,65 +318,84 @@ class AugmentedRAG:
             str: The generated response from the model.
         """
         chunks = self.bdd.chroma_db.query(
-            query_texts=[query],
-            n_results=100 # Temporaire, on met 12 pour avoir plus de résultats
-            # n_results=self.top_n, # Mettre n_results limite le rag à 2 résultats, mais la similarité ne marche pas ce qui empêche le rag de fonctionner correctement
+            query_texts=[query + f" ville: {self.selected_city}"],
+            n_results=self.top_n, # Mettre n_results limite le rag à 2 résultats pour l'instant
         )
-        # le self.top_n calcules la similarité cos entre les documents et le query, mais il a du mal à être précis, il renvoit toujours le même document(déchet dangereux)
-        # On enlève le self.top_n pour l'instant
+        # le self.top_n calcules la similarité entre les documents et le query
         print("Chunks retrieved!")
+        # print("="*50)
+        # print(self.selected_city)
         # Travail debuggage, à retirer plus tard sur filtre ville
         chunks_list: list[str] = chunks["documents"][0]
     
         # chunks_list: list[str] = chunks["documents"][1] List index out of range
-        print("Chunks entier =====================", chunks) # {'ids': [['ville: Paris action: Traitement spécialisé couleur_recipient: etc..
-        print("Debug chunks_list", chunks_list) # Debug chunks_list ['6796411e9435b3c58c19d798', '6796411e9435b3c58c19d794'] ? avecchunks["documents"][0]
+        # print("type de chunks", type(chunks)) # <class 'dict'>
+        # print("\n=== Chunks Dictionary Structure ===")
+        # print(f"Keys: {chunks.keys()}")
+        # for key in chunks.keys():
+        #     print(f"\nKey: {key}")
+        #     print(f"Value type: {type(chunks[key])}")
+        # print("=" * 50)
+        # En fait toutes les informations du document sont contenus dans la clef 'ids' et non 'documents', ids est de type list
+        # print("type chunk ids",type(chunks["ids"])) # <class 'list'>
+        # print("Résultat chunks", chunks_list)
+        # print("=" * 50)
+        # filtered_chunks = [chunk for chunk in chunks if f"ville: {self.selected_city}" in chunks["ids"]]
+        # print("taille filtered_chunks", len(filtered_chunks)) # 12 pour Paris, 11 pour Grand Lyon Métropole
 
+        # print("Debug filtered_chunks:", filtered_chunks)  # Debug: Check filtered chunks
         # chunks renvoit le document entier et chunks_list uniquement les IDs, il est plus pertinent de nourir le document entier au llm plutôt que les ID
         # On envoit une quantité conséquente de données au llm, il faudrait revoir la fonction top_n afin qu'elle uniquement les documents les plus proches de la requête au lieu de tout
 
-        # peut-être trop de données, refaire le document paris_tri_json
         print("Building prompt...")
         prompt_rag = self.build_prompt(
-            context=chunks, history=str(history), query=query # On remplace chunks_list par chunks pour envoyer le document entier
+            context=chunks_list, history=str(history), query=query 
         ) # ici on utilise bien context, mais pas dans call_model ?
+        # print("Prompt rag", prompt_rag)
+        # print("="*50)
+        response = self.call_model(
+            query=query, context=chunks_list, prompt_dict=prompt_rag
+        ) 
 
-        # response = self.call_model(
-        #     query=query, context=chunks, prompt_dict=prompt_rag
-        # ) 
+        return self.get_response(response=response) # get_response pour checker si la réponse est safe ou pas
+    
+        # ################################## Build d'un prompt minimal en dur ##################################
+        # ça marche bien -> On essaye maintenant de changer les role avec les instructions de la bdd chroma
+        # contexte_dur = []
+        # instruction_text = """Votre rôle est d'aider les utilisateurs à comprendre le processus de recyclage et de gestion des déchets en se basant uniquement sur les informations disponibles dans votre base de connaissances. Si un utilisateur pose une question qui dépasse les informations disponibles, répondez avec :
 
-        # ################################## Build d'un prompt minimal en dur pour voir si réduire la quantité marche ##################################
-        contexte_dur = []
-        instruction_text = """Votre rôle est d'aider les utilisateurs à comprendre le processus de recyclage et de gestion des déchets en se basant uniquement sur les informations disponibles dans votre base de connaissances. Si un utilisateur pose une question qui dépasse les informations disponibles, répondez avec :
+        # "Je suis désolé, mais ma fonction d'agent conversationnel est limitée aux données que j'ai en mémoire. Pour plus d'informations, je vous invite à contacter la mairie de votre localité."
 
-        "Je suis désolé, mais ma fonction d'agent conversationnel est limitée aux données que j'ai en mémoire. Pour plus d'informations, je vous invite à contacter la mairie de votre localité."
+        # Adoptez un ton professionnel, clair et engageant tout en vous assurant que vos réponses respectent les consignes suivantes :
+        # - Précision : Appuyez-vous exclusivement sur les données disponibles.
+        # - Accessibilité : Fournissez des explications compréhensibles par le grand public.
+        # - Orientation : Lorsque les informations sont insuffisantes, guidez les utilisateurs vers les services municipaux compétents."""
 
-        Adoptez un ton professionnel, clair et engageant tout en vous assurant que vos réponses respectent les consignes suivantes :
-        - Précision : Appuyez-vous exclusivement sur les données disponibles.
-        - Accessibilité : Fournissez des explications compréhensibles par le grand public.
-        - Orientation : Lorsque les informations sont insuffisantes, guidez les utilisateurs vers les services municipaux compétents."""
+        # prompt_dict_dur = [
+        #     {"role": "system", "content": instruction_text},
+        #     {"role": "user", "content": "Voici les instructions de tri :"},
+        #     {"role": "assistant", "content": "1. Trier les papiers, emballages en carton, métal et plastique dans le bac jaune ou Trilib'."},
+        #     {"role": "assistant", "content": "2. Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre."},
+        #     {"role": "assistant", "content": "3. Trier les déchets alimentaires dans le bac marron."},
+        #     {"role": "assistant", "content": "4. Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification."},
+        #     {"role": "user", "content": query}  # Doit obligatoirement finir par User or Tool
+        # ]
+        # contexte_dur.append(instruction_text)
 
-        prompt_dict_dur = [
-            {"role": "system", "content": instruction_text},
-            {"role": "user", "content": "Voici les instructions de tri :"},
-            {"role": "assistant", "content": "1. Trier les papiers, emballages en carton, métal et plastique dans le bac jaune ou Trilib'."},
-            {"role": "assistant", "content": "2. Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre."},
-            {"role": "assistant", "content": "3. Trier les déchets alimentaires dans le bac marron."},
-            {"role": "assistant", "content": "4. Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification."},
-            {"role": "user", "content": query}  # Doit obligatoirement finir par User or Tool
-        ]
-        contexte_dur.append(instruction_text)
+        # response_dur = self.call_model(
+        #     query=query,
+        #     context=contexte_dur,
+        #     prompt_dict=prompt_dict_dur
+        # )
 
-        response_dur = self.call_model(
-            query=query,
-            context=contexte_dur,
-            prompt_dict=prompt_dict_dur
-        )
         # call_model contient toutes les infos (nb input, consommation énergie, etc..)
         # query (str): The input query to send to the LLM.
         #     context (List[str]): A list of strings providing the context for the LLM. # Mettre à jour la doc ? On utilise pas context au final
         #     prompt_dict (List[Dict[str, str]]): A list of dictionaries containing prompt details. (role from config.yml and chat history)
         
         # db.add_query(query=response)
-        return self.get_response(response_dur) # debugging
-        # return self.get_response(response=response) # get_response pour checker si safe ou pas
+        # return self.get_response(response_dur) # debugging
+
+
+
+# peut-être trop de données, refaire le document paris_tri_json ?
