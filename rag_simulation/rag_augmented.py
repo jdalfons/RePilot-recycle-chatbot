@@ -305,5 +305,20 @@ class AugmentedRAG:
         response = self.call_model(
             query=query, context=chunks_list, prompt_dict=prompt_rag
         )
-        db.add_query(query=response)
+        # db.add_message(chat_id='1',  , query=response)
+        # VALUES ('Default Chat', 'admin', 'Hello', 'Hi! How can I help you?');
+        # db.add_message(
+        #     chat_title="Default Chat",
+        #     username="admin",
+        #     query='query',
+        #     answer="response",
+        # )
+        # print(response)
+        # db.add_query(
+        #     query = response,
+        #     chat_title="Default Chat",
+        #     username="user",
+        # )
+        # return response
+        # return (response, self.get_response(response=response))
         return self.get_response(response=response)
