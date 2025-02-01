@@ -6,6 +6,7 @@ import os
 from views import admin_dashboard, login, user_dashboard
 from rag_simulation.rag_augmented import AugmentedRAG
 
+
 class MainApp:
     def __init__(self):
         self.db = SQLDatabase(db_name="poc_rag")

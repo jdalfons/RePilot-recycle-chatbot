@@ -42,9 +42,11 @@ class SQLDatabase:
                 dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
                 user=os.getenv('POSTGRES_USER', 'llm'),
                 password=os.getenv('POSTGRES_PASSWORD', 'llm'),
-                host=os.getenv('POSTGRES_HOST', 'localhost'),
-                port=32003,
+ 
+                host=os.getenv('POSTGRES_HOST', "localhost"),  # Use the correct service name
+                port=int(os.getenv('POSTGRES_PORT', "32003")) # 32003
                 options="-c client_encoding=UTF8"
+
             )
             self.cursor = self.con.cursor()
             self.check_table_existence()
