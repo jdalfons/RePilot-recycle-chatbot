@@ -10,7 +10,7 @@ from utils import JSONProcessor
 from database.db_management import MongoDB
 from sentence_transformers import SentenceTransformer
 from chromadb.config import Settings
-
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 # Charger les variables d'environnement
 load_dotenv()
 MONGO_HOST = os.getenv('MONGO_HOST', 'localhost')
@@ -35,6 +35,10 @@ class BDDChunks:
         self.embedding_name = embedding_model
         self.chroma_db = None  # La collection sera créée dynamiquement
         self.collection_name = "dechets_collection"
+        self.path = "dechets"
+        self.embeddings = SentenceTransformerEmbeddingFunction(
+            model_name=embedding_model
+        )
 
     def reset_chroma_collection(self) -> None:
         """
@@ -87,18 +91,24 @@ class BDDChunks:
         if self.chroma_db is None:
           
             raise RuntimeError("Must instantiate a ChromaDB collection first!")
-        if len(list_chunks) < batch_size:
-            batch_size_for_chromadb = len(list_chunks)
-        else:
-            batch_size_for_chromadb = batch_size
-        
         # Divide ids and chunks into lists of max 160
         divided_chunks = [list_chunks[i:i + 160] for i in range(0, len(list_chunks), 160)]
         divided_ids = [ids[i:i + 160] for i in range(0, len(ids), 160)]
         for i in tqdm(range(len(divided_chunks))): 
             self.chroma_db.add(documents=divided_chunks[i], ids=divided_ids[i])
 
+    def _create_collection(self, path: str) -> None:
+            """
+            Create a new ChromaDB collection for storing embeddings.
 
+            Args:
+                path (str): The name of the collection to create in ChromaDB.
+            """
+            # Tester qu'en changeant de path, on accède pas au reste
+            file_name = "a" + os.path.basename(path)[0:50].strip() + "a"
+            file_name = re.sub(r"\s+", "-", file_name)
+            # Expected collection name that (1) contains 3-63 characters, (2) starts and ends with an alphanumeric character, (3) otherwise contains only alphanumeric characters, underscores or hyphens (-), (4) contains no two consecutive periods (..)
+            self.chroma_db = self.client.get_or_create_collection(name=file_name, embedding_function=self.embeddings, metadata={"hnsw:space": "cosine"})  # type: ignore
     def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
         
         mongoDb = MongoDB(
@@ -144,7 +154,7 @@ class BDDChunks:
             json_processor = JSONProcessor()
             cleaned_texts = [json_processor.clean_text(doc) for doc in corpus]
             logging.info(f"📝 {len(cleaned_texts)} documents nettoyés.")
-            self.chunks = chunks
+            self.chunks = cleaned_texts
             self.ids = ids  
             self._create_collection(path=self.path)
             # Ajout des embeddings
