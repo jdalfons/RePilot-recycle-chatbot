@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 import uuid
 
@@ -55,47 +56,12 @@ class AugmentedRAG:
         self.temperature = temperature
         self.db = db
         self.selected_city = selected_city
-
-    def get_cosim(self, a: NDArray[np.float32], b: NDArray[np.float32]) -> float:
-        """
-        Calculates the cosine similarity between two vectors.
-
-        Args:
-            a (NDArray[np.float32]): The first vector.
-            b (NDArray[np.float32]): The second vector.
-
-        Returns:
-            float: The cosine similarity between the two vectors.
-        """
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-    def get_top_similarity(
-        self,
-        embedding_query: NDArray[np.float32],
-        embedding_chunks: NDArray[np.float32],
-        corpus: list[str],
-    ) -> list[str]:
-        """
-        Retrieves the top N most similar documents from the corpus based on the query's embedding.
-
-        Args:
-            embedding_query (NDArray[np.float32]): The embedding of the query.
-            embedding_chunks (NDArray[np.float32]): A NumPy array of embeddings for the documents in the corpus.
-            corpus (List[str]): A list of documents (strings) corresponding to the embeddings in `embedding_chunks`.
-            top_n (int, optional): The number of top similar documents to retrieve. Defaults to 5.
-
-        Returns:
-            List[str]: A list of the most similar documents from the corpus, ordered by similarity to the query.
-        """
-        cos_dist_list = np.array(
-            [
-                self.get_cosim(embedding_query, embed_doc)
-                for embed_doc in embedding_chunks
-            ]
-        )
-        indices_of_max_values = np.argsort(cos_dist_list)[-self.top_n :][::-1]
-        return [corpus[i] for i in indices_of_max_values]
-
+        self.embedding_name = self.bdd.embedding_name
+      
+        # Vérification de l'initialisation correcte
+        if not self.bdd:
+            raise ValueError("❌ L'instance BDDChunks n'est pas initialisée !")
+    
     def build_prompt(
         self, context: list[str], history: str, query: str
     ) -> list[dict[str, str]]:
@@ -257,21 +223,24 @@ class AugmentedRAG:
         # Analyze safety of the query
         safe = self.analyse_safety(query=query)
         # Create and return a Query object with all the gathered data
-        return Query(
-            query_id=str(uuid.uuid4()),
-            query=query,
-            answer=str(chat_response["result"].choices[0].message.content),
-            context="\n".join(context),
-            safe=safe,
-            energy_usage=energy_usage,
-            gwp=gwp,
-            latency=latency,
-            completion_tokens=output_tokens,
-            prompt_tokens=input_tokens,
-            query_price=dollar_cost,
-            embedding_model=self.bdd.embedding_name,
-            generative_model=self.llm,
-        )
+
+        query_obj = Query(
+        query_id=str(uuid.uuid4()),
+        query=query,
+        answer=str(chat_response["result"].choices[0].message.content),
+        context="\n".join(context),
+        safe=safe,
+        energy_usage=energy_usage,
+        gwp=gwp,
+        latency=latency,
+        completion_tokens=output_tokens,
+        prompt_tokens=input_tokens,
+        query_price=dollar_cost,
+        embedding_model=self.bdd.embedding_model.__class__.__name__,
+        generative_model=self.llm,
+    )
+        return query_obj
+        
 
     def analyse_safety(self, query: str) -> bool:
         """
@@ -302,56 +271,48 @@ class AugmentedRAG:
 
     def __call__(self, query: str, history: dict[str, str]) -> str:
         """
-        Process a query and return a response based on the provided history and database.
-
-        This method performs the following steps:
-        1. Queries the ChromaDB instance to retrieve relevant documents based on the input query.
-        2. Constructs a prompt using the retrieved documents, the provided query, and the history.
-        3. Sends the prompt to the model for generating a response.
+        Exécute le processus RAG pour générer une réponse.
 
         Args:
-            query (str): The user query to be processed.
-            history (dict[str, str]): A dictionary containing the conversation history,
-                where keys represent user inputs and values represent corresponding responses.
+            query (str): Question de l'utilisateur.
+            history (dict[str, str]): Historique de conversation.
 
         Returns:
-            str: The generated response from the model.
+            str: Réponse générée.
         """
-        chunks = self.bdd.chroma_db.query(
-            query_texts=[query + f" ville: {self.selected_city}"],
-            n_results=self.top_n, # Mettre n_results limite le rag à 2 résultats pour l'instant
-        )
-        # le self.top_n calcules la similarité entre les documents et le query
-        print("Chunks retrieved!")
-        
-        chunks_list: list[str] = chunks["documents"][0]
-    
-        
+        try:
+            results = self.bdd.chroma_db.query(query_texts=[query + f" ville: {self.selected_city}"],
+            n_results=self.top_n,) # Mettre n_results limite le rag à 2 résultats pour l'instant)
+      
+            if not results["documents"]:
+                return "❌ Aucun document pertinent trouvé pour répondre à votre question."
 
-        print("Building prompt...")
-        prompt_rag = self.build_prompt(
-            context=chunks_list, history=str(history), query=query 
-        ) 
+            chunks_list = results["documents"][0]
+            print("Building prompt...")
+            prompt_rag = self.build_prompt(context=chunks_list, history=str(history), query=query)
 
-        response = self.call_model(
-            query=query, context=chunks_list, prompt_dict=prompt_rag
- 
-        )
-        # db.add_message(chat_id='1',  , query=response)
-        # VALUES ('Default Chat', 'admin', 'Hello', 'Hi! How can I help you?');
-        # db.add_message(
-        #     chat_title="Default Chat",
-        #     username="admin",
-        #     query='query',
-        #     answer="response",
-        # )
-        # print(response)
-        # db.add_query(
-        #     query = response,
-        #     chat_title="Default Chat",
-        #     username="user",
-        # )
-        # return response
-        # return (response, self.get_response(response=response))
-        return self.get_response(response=response)
- 
+            query_obj = self.call_model(query=query, context=chunks_list, prompt_dict=prompt_rag)
+            
+             # ✅ Enregistrement dans la base
+            self.db.add_query(
+            query_id=query_obj.query_id,
+            query=query_obj.query,
+            answer=query_obj.answer,
+            embedding_model=query_obj.embedding_model,
+            generative_model=query_obj.generative_model,
+            context=query_obj.context,
+            safe=query_obj.safe,
+            latency=query_obj.latency,
+            completion_tokens=query_obj.completion_tokens,
+            prompt_tokens=query_obj.prompt_tokens,
+            query_price=query_obj.query_price,
+            energy_usage=query_obj.energy_usage,
+            gwp=query_obj.gwp,
+            )
+
+            return self.get_response(response=query_obj) 
+
+        except Exception as e:
+            logging.error(f"❌ Erreur dans AugmentedRAG : {e}")
+            return "Une erreur s'est produite lors du traitement de votre requête."
+
