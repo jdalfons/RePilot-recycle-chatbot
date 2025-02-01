@@ -44,7 +44,7 @@ class SQLDatabase:
                 password=os.getenv('POSTGRES_PASSWORD', 'llm'),
  
                 host=os.getenv('POSTGRES_HOST', "localhost"),  # Use the correct service name
-                port=int(os.getenv('POSTGRES_PORT', "32003")) # 32003
+                port=int(os.getenv('POSTGRES_PORT', "32003")), # 32003
                 options="-c client_encoding=UTF8"
 
             )
