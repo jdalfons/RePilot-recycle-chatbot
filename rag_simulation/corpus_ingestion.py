@@ -1,163 +1,152 @@
 import os
 import re
-import fitz
+import logging
 import chromadb
-import tiktoken
+import uuid
 from tqdm import tqdm
-
-from utils import JSONProcessor 
-from database.db_management import MongoDB
-
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-from chromadb.config import Settings
-
-enc = tiktoken.get_encoding("o200k_base")
-
 from dotenv import load_dotenv
 
-# Load environment variables from a .env file
+from utils import JSONProcessor
+from database.db_management import MongoDB
+from sentence_transformers import SentenceTransformer
+from chromadb.config import Settings
+
+# Charger les variables d'environnement
 load_dotenv()
-
-MONGO_HOST = os.getenv('MONGO_HOST')
-POSTGRES_URI = os.getenv('POSTGRES_URI')
-
+MONGO_HOST = os.getenv('MONGO_HOST', 'localhost')
 
 class BDDChunks:
     """
-    A class to handle operations related to chunking text data, embedding, and storing in a ChromaDB instance.
-
-    This class provides methods to:
-    - Read text from PDF files.
-    - Split the text into smaller chunks for processing.
-    - Create a ChromaDB collection with embeddings for the chunks.
-    - Add these chunks and their embeddings to the ChromaDB collection.
+    Classe pour gérer l'ingestion de données depuis MongoDB vers ChromaDB avec génération d'embeddings.
     """
 
     def __init__(self, embedding_model: str):
         """
-        Initialize a BDDChunks instance.
+        Initialise l'instance BDDChunks.
 
         Args:
-            embedding_model (str): The name of the embedding model to use for generating embeddings.
-            path (str): The file path to the PDF or dataset to process.
+            embedding_model (str): Modèle utilisé pour générer les embeddings.
         """
-        self.path = "dechets"
-        self.chunks: list[str] | None = None
         self.client = chromadb.PersistentClient(
             path="./chromadb",
             settings=Settings(anonymized_telemetry=False)
         )
+        self.embedding_model = SentenceTransformer(embedding_model)
         self.embedding_name = embedding_model
-        self.embeddings = SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model
-        )
-        self.chroma_db = None
+        self.chroma_db = None  # La collection sera créée dynamiquement
+        self.collection_name = "dechets_collection"
 
-    def _create_collection(self, path: str) -> None:
+    def reset_chroma_collection(self) -> None:
         """
-        Create a new ChromaDB collection for storing embeddings.
+        Supprime l'ancienne collection pour éviter les doublons et la recrée proprement.
+        """
+        try:
+            self.client.delete_collection(self.collection_name)
+            logging.info(f"🗑️ Collection ChromaDB '{self.collection_name}' supprimée.")
+        except Exception:
+            logging.warning(f"⚠️ Impossible de supprimer la collection '{self.collection_name}', peut-être inexistante.")
+
+        # Création de la nouvelle collection
+        self.chroma_db = self.client.get_or_create_collection(name=self.collection_name)
+        logging.info(f"✅ Nouvelle collection ChromaDB créée : {self.collection_name}")
+
+    def get_documents(self, collection: str = 'dechets', database: str = 'rag') -> tuple[list[str], list[str]]:
+        """
+        Récupère les documents de MongoDB.
 
         Args:
-            path (str): The name of the collection to create in ChromaDB.
-        """
-        # Tester qu'en changeant de path, on accède pas au reste
-        file_name = "a" + os.path.basename(path)[0:50].strip() + "a"
-        file_name = re.sub(r"\s+", "-", file_name)
-        # Expected collection name that (1) contains 3-63 characters, (2) starts and ends with an alphanumeric character, (3) otherwise contains only alphanumeric characters, underscores or hyphens (-), (4) contains no two consecutive periods (..)
-        self.chroma_db = self.client.get_or_create_collection(name=file_name, embedding_function=self.embeddings, metadata={"hnsw:space": "cosine"})  # type: ignore
-
-    def read_pdf(self, file_path: str) -> str:
-        """
-        Reads the content of a PDF file, excluding the specified number of pages from the start and end.
-
-        Args:
-            file_path (str): The path to the PDF file.
+            collection (str, optional): Nom de la collection MongoDB. Defaults to 'dechets'.
+            database (str, optional): Nom de la base MongoDB. Defaults to 'rag'.
 
         Returns:
-            str: The extracted text from the specified pages of the PDF.
+            tuple[list[str], list[str]]: Liste des documents texte et des IDs.
         """
-        doc = fitz.open(file_path)
-        text = str()
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            text += page.get_text()  # type: ignore
-        return text  # type: ignore
+        mongo_db = MongoDB(db_name=database, collection_name=collection, host=MONGO_HOST)
+        all_documents = mongo_db.query_collection(db_name=database, collection_name=collection, query={})
 
-    def split_text_into_chunks(self, corpus: str, chunk_size: int = 500) -> list[str]:
-        """
-        Splits a given text corpus into chunks of a specified size.
+        if not all_documents:
+            logging.warning("⚠️ Aucun document trouvé dans MongoDB ! Vérifiez la base de données.")
 
-        Args:
-            corpus (str): The input text corpus to be split into chunks.
-            chunk_size (int, optional): The size of each chunk. Defaults to 500.
-
-        Returns:
-            list[str]: A list of text chunks.
-        """
-        tokenized_corpus = enc.encode(corpus)
-        chunks = [
-            "".join(enc.decode(tokenized_corpus[i : i + chunk_size]))
-            for i in tqdm(range(0, len(tokenized_corpus), chunk_size))
+        ids = [str(doc['_id']) for doc in all_documents]
+        documents = [
+            " ".join([f"{k}: {v}" for k, v in doc.items() if k not in ['_id', 'id']])
+            for doc in all_documents
         ]
 
-        return chunks
+        return documents, ids
 
-    def add_embeddings(self, list_chunks: list[str], ids:list[str] , batch_size: int = 100) -> None:
+    def add_embeddings(self, list_chunks: list[str], ids: list[str], batch_size: int = 100) -> None:
         """
-        Add embeddings for text chunks to the ChromaDB collection.
+        Ajoute des embeddings et métadonnées dans ChromaDB.
 
         Args:
-            list_chunks (list[str]): A list of text chunks to embed and add to the collection.
-            batch_size (int, optional): The batch size for adding documents to the collection. Defaults to 100.
-
-        Note:
-            ChromaDB supports a maximum of 166 documents per batch.
+            list_chunks (list[str]): Liste des textes à indexer.
+            ids (list[str]): Liste des IDs MongoDB correspondant aux documents.
+            batch_size (int): Nombre de documents traités par lot.
         """
         if self.chroma_db is None:
-            raise RuntimeError("Must instantiate a ChromaDB collection first!")
-        if len(list_chunks) < batch_size:
-            batch_size_for_chromadb = len(list_chunks)
-        else:
-            batch_size_for_chromadb = batch_size
-        
-        
-        # Divide ids and chunks into lists of max 160
-        divided_chunks = [list_chunks[i:i + 160] for i in range(0, len(list_chunks), 160)]
-        divided_ids = [ids[i:i + 160] for i in range(0, len(ids), 160)]
-        for i in tqdm(range(len(divided_chunks))): 
-            self.chroma_db.add(documents=divided_chunks[i], ids=divided_ids[i])
+            raise RuntimeError("❌ La collection ChromaDB n'est pas initialisée !")
 
-    def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
-        
-        mongoDb = MongoDB(
-            db_name=database,
-            collection_name=collection, 
-            host=host
+        if not list_chunks:
+            logging.error("❌ Aucun chunk de texte à insérer !")
+            return
+
+        # Générer un UUID pour chaque document
+        chroma_ids = [str(uuid.uuid4()) for _ in ids]
+
+        # Générer explicitement les embeddings avant l'ajout dans ChromaDB
+        embeddings = self.embedding_model.encode(list_chunks, show_progress_bar=True)
+
+        # Ajouter les documents en batch
+        for i in tqdm(range(0, len(list_chunks), batch_size), desc="Ajout des embeddings dans ChromaDB"):
+            batch_chunks = list_chunks[i:i + batch_size]
+            batch_ids = chroma_ids[i:i + batch_size]
+            batch_embeddings = embeddings[i:i + batch_size]
+
+            logging.info(f"📤 Ajout du batch {i} à {i + batch_size} ({len(batch_chunks)} documents)")
+
+            self.chroma_db.add(
+                documents=batch_chunks,
+                ids=batch_ids,
+                embeddings=batch_embeddings
             )
-        all_documents_list = mongoDb.query_collection(database, collection, dict())
-        ids = [str(doc['_id']) for doc in all_documents_list]
-        documents = [" ".join([f"{k}: {v}" for k, v in doc.items() if k != '_id' and k != 'id']) for doc in all_documents_list]
-        
-        return documents, ids
-        
-        
+
+        logging.info(f"✅ {len(list_chunks)} documents ajoutés à ChromaDB avec succès !")
+
     def __call__(self) -> None:
         """
-        Execute the entire process of reading, chunking, creating a collection, and adding embeddings.
-
-        This method:
-        1. Reads the text from the specified PDF file.
-        2. Splits the text into chunks.
-        3. Creates a ChromaDB collection for storing the embeddings.
-        4. Adds the text chunks and their embeddings to the ChromaDB collection.
+        Exécute tout le pipeline d'ingestion :
+        1. Récupération des documents depuis MongoDB
+        2. Nettoyage des textes
+        3. Suppression et recréation d'une collection dans ChromaDB
+        4. Ajout des embeddings
         """
-        
-        host = MONGO_HOST if MONGO_HOST != None else 'localhost'
+        logging.info("🚀 Début du pipeline d'ingestion...")
 
-        ids, corpus = self.get_documents(host=host)
-        json_processor = JSONProcessor()
-        chunks = [json_processor.clean_text(doc) for doc in corpus]
-        self.chunks = chunks
-        self.ids = ids  
-        self._create_collection(path=self.path)
-        self.add_embeddings(list_chunks=chunks, ids=ids)
+        try:
+            # Récupérer les documents et les IDs
+            corpus, ids = self.get_documents()
+            logging.info(f"📂 {len(corpus)} documents récupérés depuis MongoDB")
+
+            # Vérifications pour éviter les erreurs
+            if not corpus:
+                raise ValueError("❌ Aucun document à encoder ! Vérifiez MongoDB.")
+            if not isinstance(corpus[0], str):
+                raise TypeError(f"❌ Le format du document est incorrect : {type(corpus[0])}")
+
+            # Nettoyage des textes
+            json_processor = JSONProcessor()
+            cleaned_texts = [json_processor.clean_text(doc) for doc in corpus]
+            logging.info(f"📝 {len(cleaned_texts)} documents nettoyés.")
+
+            # Suppression et recréation de la collection ChromaDB
+            self.reset_chroma_collection()
+
+            # Ajout des embeddings
+            self.add_embeddings(list_chunks=cleaned_texts, ids=ids)
+
+            logging.info("✅ Pipeline d'ingestion terminé avec succès !")
+
+        except Exception as e:
+            logging.error(f"❌ Erreur lors du pipeline d'ingestion : {e}")
+            raise

@@ -1,11 +1,27 @@
-import pandas as pd
-from rag_simulation.schema import Query
-
-import os
 import json
-from pymongo import MongoClient
+import time
+import litellm
 import psycopg2
+import os
+import functools
 
+from pymongo import MongoClient
+
+@functools.lru_cache(maxsize=100)  # 🔹 Stocke jusqu'à 100 réponses générées
+def cached_generate_fake_answers(question: str, correct_answer: str):
+        """
+        Vérifie si la question a déjà été traitée récemment.
+        Si oui, récupère la réponse stockée sans refaire appel à l'API.
+        Sinon, génère de nouvelles réponses incorrectes.
+
+        Args:
+            question (str): La question du quiz.
+            correct_answer (str): La réponse correcte.
+
+        Returns:
+            tuple[str, list[str]]: (Bonne réponse courte, [fausse réponse 1, fausse réponse 2])
+        """
+        return SQLDatabase.generate_fake_answers(question, correct_answer)
 
 class MongoDB:
     def __init__(self, db_name: str, collection_name: str, data_dir: str = 'data', host: str = 'localhost', port: int = 27017):
@@ -98,132 +114,233 @@ class MongoDB:
         # print(f"Data from all JSON files in '{self.data_dir}' verified and inserted into MongoDB collection '{self.collection_name}' if not already present")
 
 
+
 class SQLDatabase:
     def __init__(self, db_name: str):
         """
-        Initializes the SQLDatabase instance with the given database name.
+        Initialise la connexion à la base de données PostgreSQL.
 
         Args:
-            db_name (str): The name of the PostgreSQL database.
+            db_name (str): Nom de la base de données.
         """
         self.con = None
         self.cursor = None
         self.db_name = db_name
         self.connect_to_postgresql()
+        self.initialize_database()
 
     def connect_to_postgresql(self):
-        """
-        Connects to the PostgreSQL database.
-        """
+        """Se connecte à PostgreSQL."""
         try:
             self.con = psycopg2.connect(
                 dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
                 user=os.getenv('POSTGRES_USER', 'llm'),
                 password=os.getenv('POSTGRES_PASSWORD', 'llm'),
-                host=os.getenv('POSTGRES_HOST', 'llmPostgres'),  # Use the correct service name
-                port=os.getenv('POSTGRES_PORT', 5432)  # Use the correct port
+                host=os.getenv('POSTGRES_HOST', 'localhost'),
+                port=int(os.getenv('POSTGRES_PORT', "32003"))
             )
             self.cursor = self.con.cursor()
-            print("Connected to PostgreSQL database")
+            print("✅ Connecté à PostgreSQL")
         except Exception as e:
-            print(f"Failed to connect to PostgreSQL: {e}")
+            print(f"❌ Échec de connexion à PostgreSQL : {e}")
             raise
 
-    def check_table_existence(self) -> None:
-        """
-        Checks if the 'chatbot_history' table exists in the database. If it doesn't, it creates it.
-        """
+    def initialize_database(self):
+        """Vérifie et initialise les tables si elles n'existent pas."""
         try:
             self.cursor.execute(
-                """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema='public' AND table_name=%s;
-                """,
-                ("chatbot_history",),
+                "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
             )
-            table_exists = self.cursor.fetchone()
-            if not table_exists:
-                self.create_table()
-        except psycopg2.Error as e:
-            print(f"Error checking table existence: {e}")
+            existing_tables = {table[0] for table in self.cursor.fetchall()}
+            required_tables = {"chatbot_history", "chatbot_feedback", "quiz_questions", "quiz_responses", "users"}
+
+            missing_tables = required_tables - existing_tables
+            if missing_tables:
+                print(f"⚠️ Création des tables manquantes : {missing_tables}")
+                with open('sql/init.sql', 'r') as file:
+                    sql_script = file.read()
+                    self.cursor.execute(sql_script)
+                    self.con.commit()
+                    print("✅ Base de données initialisée avec succès !")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'initialisation de la base de données : {e}")
             self.con.rollback()
-            raise
 
-    def create_table(self) -> None:
+    def add_query(self, query_id: str, query: str, answer: str, embedding_model: str, 
+                  generative_model: str, context: str, safe: bool, latency: float, 
+                  completion_tokens: int, prompt_tokens: int, query_price: float, 
+                  energy_usage: float, gwp: float, username: str = "user"):
         """
-        Creates the 'chatbot_history' table in the database with predefined columns.
+        Ajoute une question et une réponse dans l'historique des conversations.
         """
-        with open('/Users/halcolo/Documents/code/lyon2/MASTER 2/LLM/RePilot-recycle-chatbot/sql/init.sql', 'r') as file:
-            create_table_query = file.read()
-        self.cursor.execute(create_table_query)
-        self.con.commit()
-        print("Table 'chatbot_history' created successfully.")
-
-    def add_query(self, query: Query):
-        """
-        Adds a query to the 'chatbot_history' table.
-
-        Args:
-            query (Query): An instance of the Query class containing query details.
-        """
-        self.check_table_existence()
-
-        # Extract year, month, day, hour, and minute from the timestamp
-        year = query.timestamp.year
-        month = query.timestamp.month
-        day = query.timestamp.day
-        hour = query.timestamp.hour
-        minutes = query.timestamp.minute
-
-        # Insert the query into the database
         insert_query = """
         INSERT INTO chatbot_history (
             query_id, query, answer, embedding_model, generative_model, context, 
-            year, month, day, hour, minutes, safe, latency, 
-            completion_tokens, prompt_tokens, query_price,
-            energy_usage, gwp
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            safe, latency, completion_tokens, prompt_tokens, query_price,
+            energy_usage, gwp, username, timestamp
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         """
+        try:
+            self.cursor.execute(insert_query, (
+                query_id, query, answer, embedding_model, generative_model, context,
+                safe, latency, completion_tokens, prompt_tokens, query_price,
+                energy_usage, gwp, username
+            ))
+            self.con.commit()
+            print("✅ Query ajoutée avec succès.")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'ajout de la requête : {e}")
+            self.con.rollback()
 
-        self.cursor.execute(
-            insert_query,
-            (
-                query.query_id,
-                query.query,
-                query.answer,
-                query.embedding_model,
-                query.generative_model,
-                str(query.context),  # Ensure context is a string
-                year,
-                month,
-                day,
-                hour,
-                minutes,
-                query.safe,
-                query.latency,
-                query.completion_tokens,
-                query.prompt_tokens,
-                query.query_price,
-                query.energy_usage,
-                query.gwp,
-            ),
-        )
-        self.con.commit()
-        print("Query added successfully.")
+    def save_feedback(self, query_id: str, username: str, feedback: str, comment: str = None):
+        """Enregistre le feedback de l'utilisateur."""
+        try:
+            insert_query = """
+            INSERT INTO chatbot_feedback (query_id, username, feedback, comment, timestamp)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+            """
+            self.cursor.execute(insert_query, (query_id, username, feedback, comment))
+            self.con.commit()
+            print(f"✅ Feedback ajouté pour {query_id} : {feedback}")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'ajout du feedback : {e}")
+            self.con.rollback()
 
-    def ask_db(self, sql_query: str) -> pd.DataFrame:
-        """
-        Executes a SQL query and returns the result as a DataFrame.
+
+    @staticmethod
+    def generate_fake_answers(question: str, correct_answer: str, max_retries: int = 3) -> tuple[str, list[str]]:
+        """ 
+        Génère une version courte de la bonne réponse et deux fausses réponses via Mistral,
+        en gérant les erreurs de rate limit avec un backoff.
 
         Args:
-            sql_query (str): The SQL query to be executed.
+            question (str): La question de base.
+            correct_answer (str): La réponse correcte détaillée.
+            max_retries (int): Nombre maximal de tentatives en cas d'erreur. 
 
         Returns:
-            pd.DataFrame: The result of the query.
+            tuple[str, list[str]]: (Bonne réponse courte, [fausse réponse 1, fausse réponse 2])
         """
-        df_query: pd.DataFrame = pd.read_sql_query(sql_query, self.con)
-        return df_query
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                # 🔹 Étape 1 : Reformuler la bonne réponse en version courte
+                reformulation_prompt = f"""
+                Voici une réponse détaillée : 
+                "{correct_answer}"
 
+                📌 Reformule-la en **une phrase courte et claire** qui garde son sens.
+                🔹 Pas plus d'une ligne.
+                🔹 Ne change pas le sens.
+
+                Réponds seulement avec la réponse reformulée.
+                """
+                short_correct_answer = litellm.completion(
+                    model="mistral/mistral-large-latest",
+                    messages=[{"role": "user", "content": reformulation_prompt}],
+                    max_tokens=50,
+                    temperature=1.0,
+                    api_key=os.getenv("MISTRAL_API_KEY"),
+                )["choices"][0]["message"]["content"].strip()
+
+                # 🔹 Étape 2 : Générer les mauvaises réponses
+                prompt_fake_answers = f"""
+                Tu es un générateur de quiz. Donne **exactement** 2 fausses réponses distinctes et réalistes.
+
+                📌 **Règles à suivre** :
+                - **N'ajoute pas** de phrases d'introduction.
+                - **Tu dois inclure le nom de la ville mentionnée dans la question.**  
+                - **Ne répète pas** la question.
+                - Écris **directement** les 2 mauvaises réponses, **chacune sur une ligne**.
+
+                ❓ **Question** : "{question}"
+                ✅ **Bonne réponse** : "{correct_answer}"
+
+                🔹 **Mauvaises réponses** :
+                1. 
+                2. 
+
+                """
+                response_fake = litellm.completion(
+                    model="mistral/mistral-large-latest",
+                    messages=[{"role": "user", "content": prompt_fake_answers}],
+                    max_tokens=100,
+                    temperature=1.2,
+                    api_key=os.getenv("MISTRAL_API_KEY"),
+                )["choices"][0]["message"]["content"].strip().split("\n")
+
+                # ✅ Nettoyer et extraire les réponses
+                fake_answers = [ans.strip("- ") for ans in response_fake if ans.strip()]
+                fake_answers = fake_answers[:2] if len(fake_answers) >= 2 else ["Réponse incorrecte 1", "Réponse incorrecte 2"]
+
+                return short_correct_answer, fake_answers
+
+            except litellm.RateLimitError:
+                attempt += 1
+                wait_time = 2 ** attempt  # ⏳ Exponential Backoff
+                print(f"⚠️ Rate limit atteint. Nouvelle tentative dans {wait_time} secondes...")
+                time.sleep(wait_time)
+
+            except Exception as e:
+                print(f"❌ Erreur lors de la génération des réponses : {e}")
+                return correct_answer, ["Réponse incorrecte 1", "Réponse incorrecte 2"]
+
+        print("❌ Échec après plusieurs tentatives. Retour à une valeur par défaut.")
+        return correct_answer, ["Réponse incorrecte 1", "Réponse incorrecte 2"]
+    
+    def get_quiz_questions(self, username: str, limit: int = 5) -> list[dict]:
+        """
+        Récupère un quiz basé sur les questions posées par l'utilisateur et génère des réponses incorrectes via le LLM.
+
+        Args:
+            username (str): Nom de l'utilisateur.
+            limit (int, optional): Nombre de questions à récupérer. Defaults to 5.
+
+        Returns:
+            list[dict]: Liste de questions avec "question", "correct_answer", et "fake_answers".
+        """
+        try:
+            # ✅ Vérifier si l'utilisateur existe
+            self.cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s;", (username,))
+            user_exists = self.cursor.fetchone()[0]
+
+            if user_exists == 0:
+                print(f"⚠️ L'utilisateur {username} n'existe pas dans la table users.")
+                return [{"message": "⚠️ Aucun compte trouvé pour cet utilisateur."}]
+
+            # ✅ Récupérer les questions aléatoires
+            self.cursor.execute(
+                """
+                SELECT query, answer 
+                FROM chatbot_history
+                WHERE username = %s  
+                ORDER BY RANDOM()
+                LIMIT %s;
+                """,
+                (username, limit),
+            )
+            questions = self.cursor.fetchall()
+
+            if not questions:
+                return [{"message": "⚠️ Aucun historique de questions trouvé pour cet utilisateur."}]
+
+            quiz_data = []
+            for query, correct_answer in questions:
+                # 🔥 Générer la version courte de la bonne réponse + 2 fausses réponses
+                short_correct_answer, fake_answers = cached_generate_fake_answers(query, correct_answer) 
+
+
+                quiz_data.append({
+                    "question": query,
+                    "correct_answer": short_correct_answer,
+                    "fake_answers": fake_answers
+                })
+
+            return quiz_data
+
+        except Exception as e:
+            self.con.rollback()  # ✅ Rétablir la base en cas d’erreur
+            print(f"❌ Erreur lors de la récupération des questions du quiz : {e}")
+            return []
 
 db = SQLDatabase(db_name="poc_rag")
