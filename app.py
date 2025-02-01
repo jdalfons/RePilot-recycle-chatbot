@@ -1,12 +1,21 @@
+import streamlit as st
+# Configuration de la page Streamlit
+st.set_page_config(
+    page_title="ChatBot",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 from dotenv import find_dotenv, load_dotenv
 import numpy as np
-import streamlit as st
+
 
 # Importation des modules du chatbot
 from rag_simulation.rag_augmented import AugmentedRAG
 from rag_simulation.corpus_ingestion import BDDChunks
 from database.db_management import db
 from utils import Config
+
 
 # Charger la configuration
 config = Config('config.yml')
@@ -15,13 +24,7 @@ config_chatbot = config.get_role_prompt()
 # Charger les variables d’environnement
 load_dotenv(find_dotenv())
 
-# Configuration de la page Streamlit
-st.set_page_config(
-    page_title="ChatBot",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+
 
 @st.cache_resource
 def instantiate_bdd() -> BDDChunks:

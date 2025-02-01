@@ -4,6 +4,7 @@ import litellm
 import psycopg2
 import os
 import functools
+import streamlit as st
 
 from pymongo import MongoClient
 
@@ -23,6 +24,16 @@ def cached_generate_fake_answers(question: str, correct_answer: str):
         """
         return SQLDatabase.generate_fake_answers(question, correct_answer)
 
+@st.cache_resource
+def get_db_connection():
+    """ Établit une connexion persistante avec PostgreSQL. """
+    return psycopg2.connect(
+        dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
+        user=os.getenv('POSTGRES_USER', 'llm'),
+        password=os.getenv('POSTGRES_PASSWORD', 'llm'),
+        host=os.getenv('POSTGRES_HOST', 'localhost'),
+        port=int(os.getenv('POSTGRES_PORT', "32003"))
+    )
 class MongoDB:
     def __init__(self, db_name: str, collection_name: str, data_dir: str = 'data', host: str = 'localhost', port: int = 27017):
         """
@@ -123,27 +134,11 @@ class SQLDatabase:
         Args:
             db_name (str): Nom de la base de données.
         """
-        self.con = None
-        self.cursor = None
+        self.con = get_db_connection()
+        self.cursor = self.con.cursor()
         self.db_name = db_name
-        self.connect_to_postgresql()
         self.initialize_database()
 
-    def connect_to_postgresql(self):
-        """Se connecte à PostgreSQL."""
-        try:
-            self.con = psycopg2.connect(
-                dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
-                user=os.getenv('POSTGRES_USER', 'llm'),
-                password=os.getenv('POSTGRES_PASSWORD', 'llm'),
-                host=os.getenv('POSTGRES_HOST', 'localhost'),
-                port=int(os.getenv('POSTGRES_PORT', "32003"))
-            )
-            self.cursor = self.con.cursor()
-            print("✅ Connecté à PostgreSQL")
-        except Exception as e:
-            print(f"❌ Échec de connexion à PostgreSQL : {e}")
-            raise
 
     def initialize_database(self):
         """Vérifie et initialise les tables si elles n'existent pas."""

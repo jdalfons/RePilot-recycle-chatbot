@@ -1,3 +1,10 @@
+import streamlit as st 
+st.set_page_config(
+    page_title="Quiz",
+    page_icon="🧠",
+    layout="wide",
+)
+
 import streamlit as st
 from database.db_management import db
 import random
@@ -6,9 +13,14 @@ st.title("🧠 Quiz basé sur vos questions")
 
 username = "user"  # À remplacer par un système d'authentification
 
+@st.cache_data(ttl=600)  # Cache les résultats pendant 10 minutes
+def get_cached_quiz_questions(username: str):
+    return db.get_quiz_questions(username=username, limit=5)
+
+
 # ✅ Stocker les questions dans `st.session_state` pour éviter leur réinitialisation
 if "quiz_data" not in st.session_state:
-    st.session_state.quiz_data = db.get_quiz_questions(username=username, limit=5)
+    st.session_state.quiz_data = get_cached_quiz_questions(username=username)
     st.session_state.answers = {}  # Stocke les réponses sélectionnées par l'utilisateur
     st.session_state.validated = False  # Indique si le quiz a été validé
     st.session_state.show_modal = False  # Indique si le modal doit être affiché
