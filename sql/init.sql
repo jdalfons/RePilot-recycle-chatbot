@@ -1,12 +1,16 @@
--- Drop Existing Tables
+ 
+-- Supprimer les tables existantes si elles existent
 DROP TABLE IF EXISTS quiz_responses;
 DROP TABLE IF EXISTS quiz_questions;
 DROP TABLE IF EXISTS chatbot_feedback;
+ 
 DROP TABLE IF EXISTS chatbot_history;
 DROP TABLE IF EXISTS chat_sessions;
 DROP TABLE IF EXISTS users;
 
--- Users Table
+ 
+-- Table des utilisateurs
+ 
 CREATE TABLE users (
     username TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
@@ -40,7 +44,9 @@ CREATE TABLE chatbot_history (
     query_price REAL,
     energy_usage REAL,
     gwp REAL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
 
 -- LLM Logs for Quiz Queries
@@ -96,8 +102,21 @@ CREATE INDEX idx_llm_logs_quiz_username ON llm_logs_quiz(username);
 
 -- Default Users
 INSERT INTO users (username, password_hash, role) 
-VALUES ('admin', md5('admin123'), 'admin'),
-       ('user', md5('user123'), 'user');
+VALUES ('admin', md5('admin123'), 'admin');
+
+
+INSERT INTO users (username, password_hash, role) 
+VALUES ('admin2', md5('admin123'), 'admin');
+
+-- Default Regular User
+INSERT INTO users (username, password_hash, role) 
+VALUES ('user', md5('user123'), 'user');
+
+INSERT INTO chat_sessions (chat_title, username)
+VALUES ('Default Chat', 'user');
+
+INSERT INTO chat_sessions (chat_title, username)
+VALUES ('Default Chat 2', 'user');
 
 -- Default Chat Sessions
 INSERT INTO chat_sessions (chat_title, username) VALUES 
