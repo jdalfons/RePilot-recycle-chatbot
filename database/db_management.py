@@ -138,6 +138,7 @@ class SQLDatabase:
         self.cursor = self.con.cursor()
         self.db_name = db_name
         self.initialize_database()
+        self.check_table_existence()
 
 
     def initialize_database(self):

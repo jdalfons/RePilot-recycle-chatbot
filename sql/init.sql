@@ -44,7 +44,9 @@ CREATE TABLE chatbot_history (
     query_price REAL,
     energy_usage REAL,
     gwp REAL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
 
 
@@ -81,6 +83,10 @@ CREATE TABLE quiz_responses (
 -- Default Admin User
 INSERT INTO users (username, password_hash, role) 
 VALUES ('admin', md5('admin123'), 'admin');
+
+
+INSERT INTO users (username, password_hash, role) 
+VALUES ('admin2', md5('admin123'), 'admin');
 
 -- Default Regular User
 INSERT INTO users (username, password_hash, role) 

@@ -7,6 +7,15 @@ from views import admin_dashboard, login, user_dashboard
 from rag_simulation.rag_augmented import AugmentedRAG
 
 
+    # """Configure page settings"""
+    # st.set_page_config(
+    #     page_title="RePilot Chatbot",
+    #     page_icon="🤖",
+    #     layout="centered",
+    #     initial_sidebar_state="expanded"
+    # )
+
+ 
 class MainApp:
     def __init__(self):
         self.db = SQLDatabase(db_name="poc_rag")
@@ -74,7 +83,7 @@ class MainApp:
 
     def run(self):
         """Main application loop"""
-        self.setup_page()
+        # self.setup_page()
         
         if not self.check_auth():
             self.pages["login"].show()
@@ -83,6 +92,8 @@ class MainApp:
             self.show_current_page()
 
 def main():
+
+
     app = MainApp()
     app.run()
 
