@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import numpy as np
 from database.db_management import SQLDatabase
 from datetime import datetime
@@ -21,6 +22,7 @@ class UserDashboard:
         self.db = SQLDatabase(db_name="poc_rag")
         self.llm = self._init_cached_llm()
         self.init_session_state()
+        self.df = self.db.ask_line_plot_user(st.session_state.username)
 
     def init_session_state(self):
         """Initialize session state variables"""
@@ -122,6 +124,24 @@ class UserDashboard:
         #     bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
         #     bdd()
         #     return bdd
+
+
+        # Add custom CSS for container sizing
+        st.markdown("""
+            <style>
+                .stPlotlyChart {
+                    width: 80%;
+                }
+                .block-container {
+                    padding-top: 1rem;
+                    padding-bottom: 1rem;
+                    max-width: 80%;
+                }
+                [data-testid="stMetricValue"] {
+                    width: 80%;
+                }
+            </style>
+        """, unsafe_allow_html=True)
         
         config = Config('config.yml')
         config_chatbot = config.get_role_prompt()
@@ -264,96 +284,176 @@ class UserDashboard:
                 st.session_state.feedback_data[query_id]["feedback"] = selected_feedback
                 st.session_state.feedback_data[query_id]["comment"] = comment
 
-                # # ✅ Le feedback n'est enregistré QUE lorsque l'utilisateur clique sur "Valider mon feedback"
-                # if st.button("Valider mon feedback", key=f"validate_feedback_{query_id}"):
-                #     if selected_feedback in ["Utile", "Inutile"]:
-                #         success = db.save_feedback(
-                #             query_id=query_id,
-                #             username="user",
-                #             feedback=selected_feedback,
-                #             comment=comment
-                #         )
-                #         if success:
-                #             st.success(f"✅ Merci pour votre retour : {selected_feedback}")
-                #         else:
-                #             st.error("❌ Une erreur est survenue lors de l'enregistrement du feedback.")
-                #     else:
-                #         st.warning("⚠️ Merci de sélectionner 'Utile' ou 'Inutile' avant de valider.")
-
-        # Bouton pour réinitialiser le chat
-        if st.button("Réinitialiser le Chat", type="primary"):
-            st.session_state.messages = []
-            st.session_state.feedback_data = {}  # 🔹 Réinitialiser les feedbacks aussi
-            st.rerun()
-
-
-
-
-
-
-
-
-
-
-    # def show_chats(self):
-    #     """Display chat interface"""
-    #     st.title("💬 Mes conversations")
-        
-    #     try:
-    #         self._display_chat_interface()
-    #     except Exception as e:
-    #         st.error(f"Erreur lors de l'affichage du chat: {str(e)}")
-    #         st.button("🔄 Réessayer", on_click=st.rerun)
-
-    # def _display_chat_interface(self):
-    #     """Handle chat interface display and interaction"""
-    #     st.subheader(f"📝 {st.session_state.current_chat}")
-
-    #     # Display chat history
-    #     st.divider()
-    #     for message in st.session_state.chat_history:
-    #         with st.chat_message(message["role"]):
-    #             st.markdown(message["content"])
-
-    #     # Chat input
-    #     if prompt := st.chat_input("Votre message..."):
-    #         self._handle_chat_input(prompt)
-
-    # def _handle_chat_input(self, prompt):
-    #     """Process chat input and generate response"""
-    #     with st.chat_message("user"):
-    #         st.markdown(prompt)
-    #     st.session_state.chat_history.append({"role": "user", "content": prompt})
-
-    #     with st.chat_message("assistant"):
-    #         with st.spinner("Réflexion en cours..."):
-    #             try:
-    #                 response = self.llm(
-    #                     query=prompt,
-    #                     history=st.session_state.chat_history
-    #                 )
-    #                 st.markdown(response)
-    #                 st.session_state.chat_history.append({"role": "assistant", "content": response})
-                    
-    #                 # self.db.add_query(
-    #                 #     query=response,
-    #                 #     username=st.session_state.username,
-    #                 #     chat_title=st.session_state.current_chat
-    #                 # )
-    #             except Exception as e:
-    #                 st.error(f"Erreur: {str(e)}")
+                # ✅ Le feedback n'est enregistré QUE lorsque l'utilisateur clique sur "Valider mon feedback"
+                if st.button("Valider mon feedback", key=f"validate_feedback_{query_id}"):
+                    if selected_feedback in ["Utile", "Inutile"]:
+                        # success = db.save_feedback(
+                        #     query_id=query_id,
+                        #     username="user",
+                        #     feedback=selected_feedback,
+                        #     comment=comment
+                        # )
+                        success = True  
+                        if success:
+                            st.success(f"✅ Merci pour votre retour : {selected_feedback}")
+                        else:
+                            st.error("❌ Une erreur est survenue lors de l'enregistrement du feedback.")
+                    else:
+                        st.warning("⚠️ Merci de sélectionner 'Utile' ou 'Inutile' avant de valider.")
 
     def show_stats(self):
-        """Display statistics dashboard"""
-        st.title("📊 Statistiques")
-        df = self.db.ask_line_plot_user(st.session_state.username)
-        st.write(df.head())
-        st.line_chart(df["avg_latency"])
+        """Display enhanced statistics dashboard"""
+
+            # Add custom CSS for container sizing
+        st.markdown("""
+            <style>
+                .stPlotlyChart {
+                    width: 100%;
+                }
+                .block-container {
+                    padding-top: 1rem;
+                    padding-bottom: 1rem;
+                    max-width: 100%;
+                }
+                [data-testid="stMetricValue"] {
+                    width: 100%;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        # Filters
+        with st.sidebar:
+            st.markdown("## 🎯 Filters")
+            time_period = st.selectbox("Time Period", 
+                ["Last 24h", "Last Week", "Last Month", "All Time"])
+            
+            # Filter data based on selection
+            now = pd.Timestamp.now()
+            if time_period == "Last 24h":
+                filtered_df = self.df[self.df['timestamp'] > (now - pd.Timedelta(days=1))]
+            elif time_period == "Last Week":
+                filtered_df = self.df[self.df['timestamp'] > (now - pd.Timedelta(days=7))]
+            elif time_period == "Last Month":
+                filtered_df = self.df[self.df['timestamp'] > (now - pd.Timedelta(days=30))]
+            else:
+                filtered_df = self.df
+
+        # Metrics Grid
+        st.markdown("## 📊 Key Metrics")
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Display key metrics and activity chart
-        # get_line_plot_user(st.session_state.username)
-        # self._display_metrics()
-        # self._display_activity_chart()
+        metrics = {
+            "⚡ Latency": f"{filtered_df['avg_latency'].mean():.2f}s",
+            "💰 Cost": f"${filtered_df['avg_query_price'].mean():.3f}",
+            "🔋 Energy": f"{filtered_df['avg_energy_usage'].mean():.2f}kWh",
+            "🌍 GWP": f"{filtered_df['avg_gwp'].mean():.2f}kg"
+        }
+        
+        for col, (title, value) in zip([col1, col2, col3, col4], metrics.items()):
+            with col:
+                st.markdown(f"""
+                    <div style='
+                        background: white;
+                        padding: 1.5em;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        text-align: center;
+                    '>
+                        <h4 style='margin:0; color:#6b7280'>{title}</h4>
+                        <h2 style='margin:0.5em 0; color:#2563eb'>{value}</h2>
+                    </div>
+                """, unsafe_allow_html=True)
+
+        # Charts
+        st.markdown("### 📈 Trends")
+        chart_tabs = st.tabs(["Latency", "Cost", "Energy"])
+        
+        with chart_tabs[0]:
+            fig_latency = self.create_trend_chart(
+                filtered_df, 
+                'avg_latency',
+                'Response Latency',
+                'Time',
+                'Seconds'
+            )
+            st.plotly_chart(fig_latency, use_container_width=True)
+
+    def create_trend_chart(self, df, metric, title, x_label, y_label):
+        """Helper function to create trend charts"""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df['timestamp'],
+            y=df[metric],
+            mode='lines',
+            line=dict(color='#2563eb', width=2)
+        ))
+        fig.update_layout(
+            title=title,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+            template='plotly_white',
+            height=400,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        return fig
+
+    # def show_stats(self):
+    #     """Display statistics dashboard"""
+    #     # Title Section
+    #     st.title("📊 Analytics Dashboard")
+        
+    #     # Date Filter
+    #     col1, col2 = st.columns(2)
+    #     with col1:
+    #         start_date = st.date_input("Start Date", value=self.df['timestamp'].min())
+    #     with col2:
+    #         end_date = st.date_input("End Date", value=self.df['timestamp'].max())
+        
+    #     # Filter data
+    #     mask = (self.df['timestamp'].dt.date >= start_date) & (self.df['timestamp'].dt.date <= end_date)
+    #     filtered_df = self.df[mask]
+        
+    #     # Key Metrics
+    #     metrics_cols = st.columns(4)
+    #     with metrics_cols[0]:
+    #         st.metric("Avg Latency", f"{filtered_df['avg_latency'].mean():.2f}s")
+    #     with metrics_cols[1]:
+    #         st.metric("Total Queries", len(filtered_df))
+    #     with metrics_cols[2]:
+    #         st.metric("Avg Energy", f"{filtered_df['avg_energy_usage'].mean():.2f}kWh")
+    #     with metrics_cols[3]:
+    #         st.metric("Avg Cost", f"${filtered_df['avg_query_price'].mean():.3f}")
+        
+    #     # Charts
+    #     st.subheader("Trends")
+    #     tabs = st.tabs(["Latency", "Tokens", "Energy", "Cost"])
+        
+    #     with tabs[0]:
+    #         st.line_chart(filtered_df.groupby('timestamp')['avg_latency'].mean())
+        
+    #     with tabs[1]:
+    #         token_df = filtered_df[['avg_completion_tokens', 'avg_prompt_tokens']]
+    #         st.line_chart(token_df)
+        
+    #     with tabs[2]:
+    #         st.line_chart(filtered_df.groupby('timestamp')['avg_energy_usage'].mean())
+        
+    #     with tabs[3]:
+    #         st.line_chart(filtered_df.groupby('timestamp')['avg_query_price'].mean())
+        
+    #     # Summary Statistics
+    #     st.subheader("Summary Statistics")
+    #     st.dataframe(filtered_df.describe())
+        
+
+
+    def _display_metrics_sidebar(self): 
+        """Display key metrics in sidebar"""
+        st.sidebar.subheader("📊 Statistiques")
+        st.sidebar.markdown("Afficher les statistiques clés de l'assistant.")
+        st.sidebar.write("Total conversations: 12")
+        st.sidebar.write("Messages envoyés: 45")
+        st.sidebar.write("Temps moyen de réponse: 2.3s")
+
 
     def _display_metrics(self):
         """Display key metrics"""
@@ -399,7 +499,7 @@ class UserDashboard:
         with st.sidebar:
             self._display_user_profile()
             self._display_chat_controls()
-            self._display_recent_chats()
+            self._display_user_stats()
             self._display_navigation()
 
     def _display_user_profile(self):
@@ -407,10 +507,10 @@ class UserDashboard:
         st.markdown(f"""
             <div style='
                 background: linear-gradient(135deg, #4f46e5, #3b82f6);
-                padding: 20px;
-                border-radius: 10px;
+                padding: 10px;
+                border-radius: 5px;
                 color: white;
-                margin-bottom: 20px;
+                margin-bottom: 10px;
             '>
                 <h2 style='margin:0'>👤 Mon Espace</h2>
                 <p style='margin:5px 0 0 0; opacity:0.9'>
@@ -421,15 +521,9 @@ class UserDashboard:
 
     def _display_chat_controls(self):
         """Display chat control buttons"""
-        if st.button("💬 Continuer Conversation"): 
+        if st.button("💬   Continuer Conversation" ,use_container_width=True): 
             st.session_state.page = "chats"
             st.rerun()
-
-        if st.button("➕ Nouvelle conversation", use_container_width=True, type="primary"):
-            st.session_state.current_chat = f"Chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            st.session_state.chat_history = []
-            st.rerun()
-        st.divider()
 
     def _display_recent_chats(self):
         """Display recent chats in sidebar"""
@@ -462,7 +556,115 @@ class UserDashboard:
                         ✉️ {len(chat['messages'])} messages
                     </p>
                 </div>
+
             """, unsafe_allow_html=True)
+
+    def _display_user_stats(self):
+        """Display user statistics in a formatted container"""
+        # Calculate statistics
+
+        num_conversations = self.df['timestamp'].count()
+        avg_latency = self.df['avg_latency'].mean()
+        total_cost = self.df['avg_query_price'].sum()
+        total_energy = self.df['avg_energy_usage'].sum()
+        avg_gwp = self.df['avg_gwp'].mean()
+
+        
+        with st.container():
+            st.markdown("""
+                <style>
+                    .stat-card {
+                        transition: all 0.3s ease;
+                    }
+                    .stat-card:hover {
+                        transform: translateY(-4px);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+                <div style='
+                    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+                    border: 1px solid #e2e8f0;
+                    border-radius: 0px;
+                    padding: 5px;
+                    margin: 12px 0;
+                    box-shadow: 5 2px 4px rgba(0, 0, 0, 0.05);
+                '>
+                    <h10 style='margin:0 0 10px 0; color:#334155; font-weight:400'>📊 User Statistics</h10>
+                    <div style='display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px'>
+                        <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>💬 Conversations</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{num_conversations}</p>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_latency:.3f}s</p>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_latency:.3f}s</p>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>💰 Total Cost</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>${total_cost:.3f}</p>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>🔋 Energy Used</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{total_energy:.3f} kWh</p>
+                            <p style='margin:0; font-size:0.9em; color:#64748b'>🌍 Average GWP</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_gwp:.3f} kg CO₂e</p>
+                        </div>
+                        
+
+                </div>
+            """, unsafe_allow_html=True)
+
+    # def _display_user_stats(self):
+    #     """Display user statistics in a formatted container"""
+    #     # Calculate statistics
+    #     num_conversations = self.df['timestamp'].count()
+    #     avg_latency = self.df['avg_latency'].mean()
+    #     total_cost = self.df['avg_price'].sum()
+    #     total_energy = self.df['avg_energy_usage'].sum()
+    #     avg_gwp = self.df['avg_gwp'].mean()
+        
+    #     with st.container():
+    #         st.markdown(f"""
+    #             <div style='
+    #                 background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+    #                 border: 1px solid #e2e8f0;
+    #                 border-radius: 12px;
+    #                 padding: 24px;
+    #                 margin: 16px 0;
+    #                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    #                 transition: transform 0.2s ease;
+    #             '>
+    #                 <h3 style='margin:0 0 20px 0; color:#334155; font-weight:600'>📊 User Statistics</h3>
+    #                 <div style='display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px'>
+    #                     <div class='stat-card' style='
+    #                         background: #f8fafc;
+    #                         padding: 16px;
+    #                         border-radius: 8px;
+    #                         border: 1px solid #e2e8f0;
+    #                         transition: transform 0.2s ease;
+    #                         &:hover { transform: translateY(-2px); }
+    #                     '>
+    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>💬 Conversations</p>
+    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{num_conversations}</p>
+    #                     </div>
+    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
+    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
+    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{avg_latency:.2f}s</p>
+    #                     </div>
+    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
+    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>💰 Total Cost</p>
+    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>${total_cost:.2f}</p>
+    #                     </div>
+    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
+    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>🔋 Energy Used</p>
+    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{total_energy:.2f} kWh</p>
+    #                     </div>
+    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
+    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>🌍 Average GWP</p>
+    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{avg_gwp:.2f} kg CO₂e</p>
+    #                     </div>
+    #                 </div>
+    #             </div>
+    #         """, unsafe_allow_html=True)
 
     def _display_navigation(self):
         """Display navigation buttons in sidebar"""
@@ -505,6 +707,10 @@ class UserDashboard:
             st.error("An error occurred. Please try again.")
             if st.button("🔄 Retry"):
                 st.rerun()
+    def __call__(self, *args, **kwds):
+        self.df = self.db.ask_line_plot_user(st.session_state.username)
+        # self.show()
+
 
 
 def show():

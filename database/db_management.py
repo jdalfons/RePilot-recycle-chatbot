@@ -183,6 +183,7 @@ class SQLDatabase:
                 energy_usage, gwp, username
             ))
             self.con.commit()
+ 
             print("✅ Query ajoutée avec succès.")
         except Exception as e:
             print(f"❌ Erreur lors de l'ajout de la requête : {e}")
@@ -349,7 +350,7 @@ class SQLDatabase:
                     WHERE table_schema = 'public' 
                     AND table_name = %s
                 )
-            """, ('users2',))
+            """, ('users',))
             if not self.cursor.fetchone()[0]:
                 self.create_tables()
         except Exception as e:
@@ -460,28 +461,82 @@ class SQLDatabase:
         self.cursor.execute("""
         SELECT 
             timestamp,
-            latency as avg_latency
-            
+            latency as avg_latency,
+            safe as avg_safe,
+            completion_tokens as avg_completion_tokens,
+            prompt_tokens as avg_prompt_tokens,
+            query_price as avg_query_price,
+            energy_usage as avg_energy_usage,
+            gwp as avg_gwp,
+            count(*) as query_count
+   
         FROM chatbot_history
         WHERE username = %s
+        GROUP BY timestamp, avg_latency, avg_safe, avg_completion_tokens, avg_prompt_tokens, avg_query_price, avg_energy_usage, avg_gwp
         """, (username,))
-        df_line_plot = pd.DataFrame(self.cursor.fetchall(), columns=['timestamp', 'avg_latency'])
+        df_line_plot = pd.DataFrame(self.cursor.fetchall(), columns=['timestamp', 'avg_latency', 'avg_safe', 'avg_completion_tokens', 'avg_prompt_tokens', 'avg_query_price', 'avg_energy_usage', 'avg_gwp', 'query_count'])
         df_line_plot["month"] = pd.to_datetime(df_line_plot["timestamp"]).dt.month
         df_line_plot["day"] = pd.to_datetime(df_line_plot["timestamp"]).dt.day
         df_line_plot["hour"] = pd.to_datetime(df_line_plot["timestamp"]).dt.hour
+        # df_line_plot["hour"] = pd.to_datetime(df_line_plot["timestamp"]).dt.hour
+        # faire  un time  range  entre  de 3 entre  4-12 et  12-20  et  20-4 ou  chaque  plage  horaire  devient une colone
+        time_range = [(4, 12), (12, 20), (20, 4)]
+        df_line_plot["4h - 12h_latency"] = 0
+        df_line_plot["12h - 20h_latency"] = 0
+        df_line_plot["20h - 4h_latency"] = 0
+
+        df_line_plot["4h - 12h_safe"] = 0
+        df_line_plot["12h - 20h_safe"] = 0
+        df_line_plot["20h - 4h_safe"] = 0
+
+        df_line_plot["4h - 12h_completion_tokens"] = 0
+        df_line_plot["12h - 20h_completion_tokens"] = 0
+        df_line_plot["20h - 4h_completion_tokens"] = 0
+
+        df_line_plot["4h - 12h_prompt_tokens"] = 0
+        df_line_plot["12h - 20h_prompt_tokens"] = 0
+        df_line_plot["20h - 4h_prompt_tokens"] = 0
+
+        df_line_plot["4h - 12h_query_price"] = 0
+        df_line_plot["12h - 20h_query_price"] = 0
+        df_line_plot["20h - 4h_query_price"] = 0
+
+        df_line_plot["4h - 12h_energy_usage"] = 0
+        df_line_plot["12h - 20h_energy_usage"] = 0
+        df_line_plot["20h - 4h_energy_usage"] = 0
+
+        df_line_plot["4h - 12h_gwp"] = 0
+        df_line_plot["12h - 20h_gwp"] = 0
+        df_line_plot["20h - 4h_gwp"] = 0
+
+        df_line_plot["4h - 12h_query_count"] = 0
+        df_line_plot["12h - 20h_query_count"] = 0
+        df_line_plot["20h - 4h_query_count"] = 0
+
+
+
+        for i, (start, end) in enumerate(time_range):
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_latency"] = df_line_plot["avg_latency"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_safe"] = df_line_plot["avg_safe"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_completion_tokens"] = df_line_plot["avg_completion_tokens"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_prompt_tokens"] = df_line_plot["avg_prompt_tokens"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_query_price"] = df_line_plot["avg_query_price"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_energy_usage"] = df_line_plot["avg_energy_usage"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_gwp"] = df_line_plot["avg_gwp"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_query_count"] = df_line_plot["query_count"]
+
         df_line_plot["datetime"] = pd.to_datetime(df_line_plot["timestamp"])
-        #group by year, month, day, hour
-        df_line_plot = df_line_plot.groupby(["month", "day", "hour"]).mean().reset_index()
-
-
+        # group by year, month, day, hour
+        df_line_plot = df_line_plot.groupby(["datetime"]).mean().reset_index()
 
         df_line_plot.set_index("datetime", inplace=True)
-        print('df_line_plot')
-        print(df_line_plot)
+        # print('df_line_plot')
+        # print(df_line_plot)
         return df_line_plot
 
 
-    def  ask_line_plot(self) -> pd.DataFrame:
+   
+    def ask_line_plot(self) -> pd.DataFrame:
         """
         Generates and displays a line plot of average latency per hour.
 
@@ -493,87 +548,82 @@ class SQLDatabase:
         """
         self.cursor.execute("""
         SELECT 
-            EXTRACT(YEAR FROM timestamp) as year,
-            EXTRACT(MONTH FROM timestamp) as month,
-            EXTRACT(DAY FROM timestamp) as day,
-            EXTRACT(HOUR FROM timestamp) as hour,
-            AVG(latency) as avg_latency,
-            COUNT(*) as query_count
+            username,
+            timestamp,
+            latency as avg_latency,
+            safe as avg_safe,
+            completion_tokens as avg_completion_tokens,
+            prompt_tokens as avg_prompt_tokens,
+            query_price as avg_query_price,
+            energy_usage as avg_energy_usage,
+            gwp as avg_gwp,
+            count(*) as query_count
+   
         FROM chatbot_history
-        GROUP BY year, month, day, hour
-        ORDER BY year, month, day, hour
+        
+        GROUP BY  username, timestamp, avg_latency, avg_safe, avg_completion_tokens, avg_prompt_tokens, avg_query_price, avg_energy_usage, avg_gwp
         """)
-        df_line_plot = pd.DataFrame(self.cursor.fetchall(), columns=['year', 'month', 'day', 'hour', 'avg_latency'])
-        df_line_plot["datetime"] = pd.to_datetime(
-            df_line_plot[["year", "month", "day", "hour"]]
-        )
+        df_line_plot = pd.DataFrame(self.cursor.fetchall(), columns=['username','timestamp', 'avg_latency', 'avg_safe', 'avg_completion_tokens', 'avg_prompt_tokens', 'avg_query_price', 'avg_energy_usage', 'avg_gwp', 'query_count'])
+        df_line_plot["month"] = pd.to_datetime(df_line_plot["timestamp"]).dt.month
+        df_line_plot["day"] = pd.to_datetime(df_line_plot["timestamp"]).dt.day
+        df_line_plot["hour"] = pd.to_datetime(df_line_plot["timestamp"]).dt.hour
+        # df_line_plot["hour"] = pd.to_datetime(df_line_plot["timestamp"]).dt.hour
+        # faire  un time  range  entre  de 3 entre  4-12 et  12-20  et  20-4 ou  chaque  plage  horaire  devient une colone
+        time_range = [(4, 12), (12, 20), (20, 4)]
+        df_line_plot["4h - 12h_latency"] = 0
+        df_line_plot["12h - 20h_latency"] = 0
+        df_line_plot["20h - 4h_latency"] = 0
+
+        df_line_plot["4h - 12h_safe"] = 0
+        df_line_plot["12h - 20h_safe"] = 0
+        df_line_plot["20h - 4h_safe"] = 0
+
+        df_line_plot["4h - 12h_completion_tokens"] = 0
+        df_line_plot["12h - 20h_completion_tokens"] = 0
+        df_line_plot["20h - 4h_completion_tokens"] = 0
+
+        df_line_plot["4h - 12h_prompt_tokens"] = 0
+        df_line_plot["12h - 20h_prompt_tokens"] = 0
+        df_line_plot["20h - 4h_prompt_tokens"] = 0
+
+        df_line_plot["4h - 12h_query_price"] = 0
+        df_line_plot["12h - 20h_query_price"] = 0
+        df_line_plot["20h - 4h_query_price"] = 0
+
+        df_line_plot["4h - 12h_energy_usage"] = 0
+        df_line_plot["12h - 20h_energy_usage"] = 0
+        df_line_plot["20h - 4h_energy_usage"] = 0
+
+        df_line_plot["4h - 12h_gwp"] = 0
+        df_line_plot["12h - 20h_gwp"] = 0
+        df_line_plot["20h - 4h_gwp"] = 0
+
+        df_line_plot["4h - 12h_query_count"] = 0
+        df_line_plot["12h - 20h_query_count"] = 0
+        df_line_plot["20h - 4h_query_count"] = 0
+
+
+
+        for i, (start, end) in enumerate(time_range):
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_latency"] = df_line_plot["avg_latency"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_safe"] = df_line_plot["avg_safe"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_completion_tokens"] = df_line_plot["avg_completion_tokens"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_prompt_tokens"] = df_line_plot["avg_prompt_tokens"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_query_price"] = df_line_plot["avg_query_price"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_energy_usage"] = df_line_plot["avg_energy_usage"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_gwp"] = df_line_plot["avg_gwp"]
+            df_line_plot.loc[(df_line_plot["hour"] >= start) & (df_line_plot["hour"] < end), f"{start}h - {end}h_query_count"] = df_line_plot["query_count"]
+
+        df_line_plot["datetime"] = pd.to_datetime(df_line_plot["timestamp"])
+        #group by year, month, day, hour
+        # df_line_plot = df_line_plot.groupby(["datetime"]).mean().reset_index()
+
         df_line_plot.set_index("datetime", inplace=True)
+        print('df_line_plot')
+        print(df_line_plot)
         return df_line_plot
 
-    # def add_query(self, query: Query, chat_title: str, username: str): 
-    #     """
-    #     Adds a query to the 'chatbot_history' table.
-        
-    #     Args:
-    #         query (Query): Query object containing message details
-    #         chat_title (str): Title of the chat session
-    #         username (str): Username of the sender
-    #     """
-    #     self.check_table_existence()
 
-    #     #check if chat_title exists
-    #     self.cursor.execute("SELECT chat_title FROM chat_sessions WHERE chat_title = %s", (chat_title,))
-    #     if not self.cursor.fetchone():
-    #         self.create_chat_session(username, chat_title)
-        
-    #     insert_query = """
-    #     INSERT INTO chatbot_history (
-    #          chat_title, username, query, answer, 
-    #         embedding_model, generative_model, context,
-    #         safe, latency, completion_tokens, prompt_tokens,
-    #         query_price, energy_usage, gwp
-    #     ) VALUES (
-    #          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-    #     )
-    #     """
-
-    #     try:
-    #         self.cursor.execute(
-    #             insert_query,
-    #             (
-    #                 # query.query_id,
-    #                 chat_title,
-    #                 username,
-    #                 query.query,
-    #                 query.answer,
-    #                 query.embedding_model,
-    #                 query.generative_model,
-    #                 str(query.context),
-    #                 query.safe,
-    #                 query.latency,
-    #                 query.completion_tokens,
-    #                 query.prompt_tokens,
-    #                 query.query_price,
-    #                 query.energy_usage,
-    #                 query.gwp
-    #             )
-    #         )
-    #         # self.con.commit()
-    #         logger.info("Query added successfully")
-        
-    #     #update chat_sessions table  updated_at
-    #         self.cursor.execute("""
-    #             UPDATE chat_sessions
-    #             SET updated_at = NOW()
-    #             WHERE chat_title = %s
-    #         """, (chat_title,))
-    #         logger.info("Chat session updated successfully")
-    #         self.con.commit()
-
-    #     except Exception as e:
-    #         logger.error(f"Error adding query: {e}")
-    #         self.con.rollback()
-    #         raise
 
     def get_user_role(self, username: str) -> str:
         """Retrieve user role from database"""
