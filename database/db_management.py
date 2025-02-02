@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional, Any
 import pandas as pd
 import hashlib
 import os
@@ -638,7 +639,7 @@ class SQLDatabase:
             logger.error(f"Role retrieval failed: {e}")
             raise
 
-    def get_users(self) -> list:
+    def get_usernames(self) -> list: # Ne retourne que le username ?
         """Retrieve all users from database"""
         try:
             self.cursor.execute("SELECT username FROM users")
@@ -646,6 +647,17 @@ class SQLDatabase:
         except Exception as e:
             logger.error(f"User retrieval failed: {e}")
             raise
+    
+    def fetch_all_users(self) -> list:
+        """Retrieve all user information from the database"""
+        try:
+            self.cursor.execute("SELECT * FROM users")  # Récupère toutes les colonnes
+            columns = [desc[0] for desc in self.cursor.description]  # Liste des noms de colonnes
+            return [dict(zip(columns, row)) for row in self.cursor.fetchall()]  # Convertit chaque ligne en dict
+        except Exception as e:
+            logger.error(f"Failed to fetch all users: {e}")
+            raise
+
     
     def get_all_chats(self) -> list:
         """Retrieve all chat history from database"""
@@ -725,6 +737,279 @@ class SQLDatabase:
             raise
 
 
+    # Gestion admins Quentin=================================
+    
+    ##########OVERVIEW PAGE##############
+    def get_usage_statistics(self) -> dict:
+        """Retrieve usage statistics"""
+        try:
+            self.cursor.execute("""
+                WITH model_counts AS (
+                SELECT generative_model, COUNT(*) as model_count
+                FROM chatbot_history
+                GROUP BY generative_model
+                ORDER BY model_count DESC
+                LIMIT 1
+                )
+                SELECT 
+                    COUNT(DISTINCT username) AS total_users,
+                    COUNT(DISTINCT chat_title) AS total_chats,
+                    COUNT(*) AS total_queries,
+                    AVG(latency) AS avg_latency,
+                    SUM(query_price) AS total_cost,
+                    SUM(energy_usage) AS total_energy,
+                    SUM(gwp) AS total_gwp,
+                    ROUND(
+                        (COUNT(CASE WHEN safe = true THEN 1 END)::float / 
+                        COUNT(*)::float * 100)::numeric, 
+                        2
+                    ) AS safe_queries_percentage,
+                    (SELECT generative_model FROM model_counts) as most_used_model
+                FROM chatbot_history
+            """)
+            result = self.cursor.fetchone()
+            return {
+                "total_users": result[0],
+                "total_chats": result[1],
+                "total_queries": result[2],
+                "avg_latency": result[3],
+                "total_cost": result[4],
+                "total_energy": result[5],
+                "total_gwp": result[6],
+                "safe_queries_percentage": result[7],
+                "most_used_model": result[8],
+            }
+        except Exception as e:
+            logger.error(f"Usage statistics retrieval failed: {e}")
+            raise
 
+    ##########USERS PAGE##############
+    
+    
+    def delete_user_and_data(self, username: str) -> bool:
+        """Delete a user and all associated data"""
+        try:
+            # Supprimer les données associées dans les autres tables
+            self.cursor.execute("DELETE FROM chatbot_history WHERE username = %s", (username,))
+            self.cursor.execute("DELETE FROM chatbot_feedback WHERE username = %s", (username,))
+            self.cursor.execute("DELETE FROM quiz_questions WHERE username = %s", (username,))
+            self.cursor.execute("DELETE FROM quiz_responses WHERE username = %s", (username,))
+            self.cursor.execute("DELETE FROM chat_sessions WHERE username = %s", (username,))
+            
+            # Supprimer l'utilisateur
+            self.cursor.execute("DELETE FROM users WHERE username = %s", (username,))
+            self.con.commit()
+            return True
+        except Exception as e:
+            logger.error(f"User deletion failed: {e}")
+            self.con.rollback()
+            raise
+    def get_top_users_by_metric(self, metric: str) -> List[tuple]:
+        """
+        Retrieve the top 5 users by the selected metric (money, environmental impact, or latency).
+
+        Args:
+            metric (str): The metric to analyze ("Money Spent", "Environmental Impact", or "Latency").
+
+        Returns:
+            List[tuple]: A list of tuples containing (username, metric_value).
+        """
+        try:
+            if metric == "Money Spent":
+                query = """
+                    SELECT username, SUM(query_price) AS total_cost
+                    FROM chatbot_history
+                    GROUP BY username
+                    ORDER BY total_cost DESC
+                    LIMIT 5
+                """
+            elif metric == "Environmental Impact":
+                query = """
+                    SELECT username, SUM(gwp) AS total_gwp
+                    FROM chatbot_history
+                    GROUP BY username
+                    ORDER BY total_gwp DESC
+                    LIMIT 5
+                """
+            elif metric == "Latency":
+                query = """
+                    SELECT username, AVG(latency) AS avg_latency
+                    FROM chatbot_history
+                    GROUP BY username
+                    ORDER BY avg_latency DESC
+                    LIMIT 5
+                """
+            else:
+                raise ValueError("Invalid metric selected.")
+
+            self.cursor.execute(query)
+            return self.cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Error retrieving top users by {metric}: {e}")
+            return []
+        
+    def get_user_details(self, username: str) -> dict:
+        """
+        Retrieve basic user information.
+        
+        Args:
+            username (str): User's username
+            
+        Returns:
+            dict: User details including username, role, creation date and active status
+        """
+        try:
+            self.cursor.execute("""
+                SELECT username, role, created_at, is_active
+                FROM users
+                WHERE username = %s
+            """, (username,))
+            result = self.cursor.fetchone()
+            return {
+                "username": result[0],
+                "role": result[1],
+                "created_at": result[2],
+                "is_active": result[3]
+            } if result else {}
+        except Exception as e:
+            logger.error(f"Erreur récupération utilisateur : {e}")
+            return {}
+    
+    def get_user_statistics(self, username: str) -> dict:
+        """
+        Retrieve user usage statistics.
+        
+        Args:
+            username (str): User's username
+            
+        Returns:
+            dict: User statistics including chat sessions, queries, costs and performance
+        """        
+        try:
+            self.cursor.execute("""
+                SELECT COUNT(DISTINCT chat_title) AS chat_sessions,
+                    COUNT(query) AS total_queries,
+                    COALESCE(SUM(query_price), 0) AS money_spent,
+                    COALESCE(SUM(gwp), 0) AS environmental_impact,
+                    COALESCE(AVG(latency), 0) AS avg_latency
+                FROM chatbot_history
+                WHERE username = %s
+            """, (username,))
+            result = self.cursor.fetchone()
+            return {
+                "Chat Sessions": result[0],
+                "Total Queries": result[1],
+                "Money Spent": result[2],
+                "Environmental Impact": result[3],
+                "Latency": result[4]
+            } if result else {}
+        except Exception as e:
+            logger.error(f"Erreur récupération statistiques : {e}")
+            return {}
+        
+    def get_user_feedback(self, username: str) -> list:
+        """Récupère l'historique des feedbacks d'un utilisateur."""
+        try:
+            self.cursor.execute("""
+                SELECT feedback, comment, timestamp
+                FROM chatbot_feedback
+                WHERE username = %s
+                ORDER BY timestamp DESC
+            """, (username,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Erreur récupération feedbacks : {e}")
+            return []
+        
+    #################### PAGE ADMIN QUIZZ ############################
+    def get_total_quiz_count(self):
+        """
+        Retrieve user feedback history.
+        
+        Args:
+            username (str): User's username to fetch feedback for
+            
+        Returns:
+            list: List of tuples containing (feedback, comment, timestamp)
+                Empty list if no feedback or error occurs
+        """
+        try:
+            self.cursor.execute("SELECT COUNT(*) FROM quiz_questions")
+            return self.cursor.fetchone()[0]
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du nombre de quiz : {e}")
+            return 0
+
+    def get_average_answers_per_quiz(self):
+        """Retourne le nombre moyen de réponses par quiz"""
+        try:
+            self.cursor.execute("""
+                SELECT AVG(answer_count) 
+                FROM (
+                    SELECT COUNT(*) as answer_count 
+                    FROM quiz_responses 
+                    GROUP BY quiz_id
+                ) as subquery
+            """)
+            result = self.cursor.fetchone()[0]
+            return round(result, 2) if result else 0
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du nombre moyen de réponses : {e}")
+            return 0
+
+    def get_quiz_success_rate(self):
+        """Retourne le taux de réussite moyen (%) des utilisateurs"""
+        try:
+            self.cursor.execute("""
+                SELECT 
+                    (COUNT(*) FILTER (WHERE is_correct = true) * 100.0) / COUNT(*) 
+                FROM quiz_responses
+            """)
+            result = self.cursor.fetchone()[0]
+            return round(result, 2) if result else 0
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du taux de réussite : {e}")
+            return 0
+
+    def get_top_users_by_success(self, limit=5):
+        """Retourne les utilisateurs avec le meilleur taux de réussite"""
+        try:
+            self.cursor.execute(f"""
+                SELECT username, 
+                       (COUNT(*) FILTER (WHERE is_correct = true) * 100.0) / COUNT(*) AS success_rate
+                FROM quiz_responses
+                GROUP BY username
+                ORDER BY success_rate DESC
+                LIMIT {limit}
+            """)
+            return self.cursor.fetchall()  # Liste de tuples (username, success_rate)
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des meilleurs utilisateurs : {e}")
+            return []
+        
+    def get_user_quiz_responses(self, username: str) -> list:
+        """
+        Retrieve user's quiz response history.
+            
+        Args:
+            username (str): Username to fetch quiz responses for
+            
+        Returns:
+            list: List of tuples containing 
+                (question, user_answer, correct_answer, is_correct, answered_at)
+                Empty list if no responses found or error occurs
+        """
+        try:
+            self.cursor.execute("""
+                SELECT q.question, r.user_answer, q.correct_answer, r.is_correct, r.answered_at
+                FROM quiz_responses r
+                JOIN quiz_questions q ON r.quiz_id = q.quiz_id
+                WHERE r.username = %s
+                ORDER BY r.answered_at DESC
+            """, (username,))
+            return self.cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Erreur récupération réponses quiz : {e}")
+            return []
 
 db = SQLDatabase(db_name="poc_rag")
