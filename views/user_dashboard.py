@@ -342,10 +342,10 @@ class UserDashboard:
         col1, col2, col3, col4 = st.columns(4)
         
         metrics = {
-            "⚡ Latency": f"{filtered_df['avg_latency'].mean():.2f}s",
-            "💰 Cost": f"${filtered_df['avg_query_price'].mean():.3f}",
-            "🔋 Energy": f"{filtered_df['avg_energy_usage'].mean():.2f}kWh",
-            "🌍 GWP": f"{filtered_df['avg_gwp'].mean():.2f}kg"
+            "⚡ Latency": f"{filtered_df['avg_latency'].mean():.1f}ms",
+            "💰 Cost": f"${filtered_df['avg_query_price'].mean():.4f}",
+            "🔋 Energy": f"{filtered_df['avg_energy_usage'].mean():.4f}kWh",
+            "🌍 GWP": f"{filtered_df['avg_gwp'].mean():.4f}kg"
         }
         
         for col, (title, value) in zip([col1, col2, col3, col4], metrics.items()):
@@ -364,18 +364,82 @@ class UserDashboard:
                 """, unsafe_allow_html=True)
 
         # Charts
-        st.markdown("### 📈 Trends")
-        chart_tabs = st.tabs(["Latency", "Cost", "Energy"])
-        
+        st.markdown("### 📈 Analyse")
+        chart_tabs = st.tabs(["Cout", "performance"])
         with chart_tabs[0]:
-            fig_latency = self.create_trend_chart(
-                filtered_df, 
-                'avg_latency',
-                'Response Latency',
-                'Time',
-                'Seconds'
-            )
-            st.plotly_chart(fig_latency, use_container_width=True)
+            col1, col2 , col3= st.columns(3)
+            with col1:
+                fig_cost = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_query_price',
+                    'Query Cost',
+                    'Time',
+                    'Cost'
+                )
+                st.plotly_chart(fig_cost, use_container_width=True)
+            with col2:
+                fig_energy = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_energy_usage',
+                    'Energy Usage',
+                    'Time',
+                    'kWh'
+                )
+                st.plotly_chart(fig_energy, use_container_width=True)
+            with col3:
+                fig_gwp = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_gwp',
+                    'Global Warming Potential',
+                    'Time',
+                    'kg CO₂e'
+                )
+                st.plotly_chart(fig_gwp, use_container_width=True)
+        with chart_tabs[1]:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                fig_latency = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_latency',
+                    'Response Latency',
+                    'Time',
+                    'Seconds'
+                )
+                st.plotly_chart(fig_latency, use_container_width=True)
+            with col2:
+                fig_tokens = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_completion_tokens',
+                    'Completion Tokens',
+                    'Time',
+                    'Tokens'
+                )
+                st.plotly_chart(fig_tokens, use_container_width=True)
+            with col3:
+                fig_tokens = self.create_trend_chart(
+                    filtered_df, 
+                    'avg_prompt_tokens',
+                    'Prompt Tokens',
+                    'Time',
+                    'Tokens'
+                )
+                st.plotly_chart(fig_tokens, use_container_width=True)
+
+
+
+        # chart_tabs = st.tabs(["Latency", "Cost", "Energy"])
+        
+        # with chart_tabs[0]:
+        #     fig_latency = self.create_trend_chart(
+        #         filtered_df, 
+        #         'avg_latency',
+        #         'Response Latency',
+        #         'Time',
+        #         'Seconds'
+        #     )
+
+            # st.plotly_chart(fig_latency, use_container_width=True)
+            # st.bar_chart(filtered_df.groupby('timestamp')['avg_latency'].mean())
 
     def create_trend_chart(self, df, metric, title, x_label, y_label):
         """Helper function to create trend charts"""
@@ -393,6 +457,18 @@ class UserDashboard:
             template='plotly_white',
             height=400,
             margin=dict(l=20, r=20, t=40, b=20)
+        )
+        return fig
+    
+    def create_bar_chart(self, df, metric, title, x_label, y_label):
+        """Helper function to create bar charts"""
+        fig = px.bar(
+            df,
+            x='timestamp',
+            y=metric,
+            title=title,
+            labels={'timestamp': x_label, metric: y_label},
+            template='plotly_white'
         )
         return fig
 
@@ -598,15 +674,13 @@ class UserDashboard:
                             <p style='margin:0; font-size:0.9em; color:#64748b'>💬 Conversations</p>
                             <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{num_conversations}</p>
                             <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
-                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_latency:.3f}s</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_latency:.1f}ms</p>
                             <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
-                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_latency:.3f}s</p>
-                            <p style='margin:0; font-size:0.9em; color:#64748b'>💰 Total Cost</p>
-                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>${total_cost:.3f}</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>${total_cost:.4f}</p>
                             <p style='margin:0; font-size:0.9em; color:#64748b'>🔋 Energy Used</p>
-                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{total_energy:.3f} kWh</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{total_energy:.4f} kWh</p>
                             <p style='margin:0; font-size:0.9em; color:#64748b'>🌍 Average GWP</p>
-                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_gwp:.3f} kg CO₂e</p>
+                            <p style='margin:4px 0; font-size:1.4em; color:#334155; font-weight:400'>{avg_gwp:.4f} kg CO₂e</p>
                         </div>
                         
 
