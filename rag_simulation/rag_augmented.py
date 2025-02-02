@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 import uuid
-
+import os
 from ecologits import EcoLogits
 
 from dotenv import load_dotenv, find_dotenv
@@ -14,7 +14,7 @@ from rag_simulation.schema import Query
 from guardrail.service import guardrail_instance
 from rag_simulation.corpus_ingestion import BDDChunks
 from rag_simulation.wrapper import track_latency
-
+from datetime import datetime 
 load_dotenv(find_dotenv())
 
 
@@ -62,6 +62,85 @@ class AugmentedRAG:
         if not self.bdd:
             raise ValueError("❌ L'instance BDDChunks n'est pas initialisée !")
     
+    def _reformulation_query(self, query_a_corriger: str) -> str:
+        """
+        Reformulates the user's query to correct spelling and syntax errors.
+
+        Args:
+            query (str): The user's query or question.
+
+        Returns:
+            str: The reformulated query with corrected spelling and syntax.
+        """
+        # Evaluation ecologits, latency
+        # Ajout de reforumulation du query (correction faute d'ortographe et syntaxe) :
+        reformulation_prompt = f"""
+        Voici la requête de l'utilisateur : 
+        "{query_a_corriger}"
+
+        Reforume la question de l'utilisateur en corrigeant l'ortographe et la syntaxe de la question
+
+        Réponds seulement avec la réponse reformulée.
+        """
+
+        # Mise à jour du query
+        # print("Query avant transformation: ", query) # ex : Query avant transformation:  je veu résiklé u karton
+
+
+        # Calculate latency in milliseconds -> Pas de wrapper pour cette fonction, car on veut faire le monitoring et la requête en même temps
+        start_time = datetime.now()
+
+        reformulation_response = litellm.completion(
+            model="mistral/ministral-3b-latest", # Choix d'un modèle petit 
+            messages=[{"role": "user", "content": reformulation_prompt}],
+            max_tokens=50,
+            temperature=1.0,
+            api_key=os.getenv("MISTRAL_API_KEY"),
+        )
+
+        end_time = datetime.now()
+        latency_ms = (end_time - start_time).total_seconds() * 1000  # ms
+
+        query_reformuler = reformulation_response["choices"][0]["message"]["content"].strip()
+        # print("Query après transformation: ", query) # ex : Query après transformation:  "Je veux recycler du carton."
+
+
+        # Calcul des métriques de monitoring
+        input_tokens = int(reformulation_response["usage"]["prompt_tokens"])  # Tokens d'entrée
+        output_tokens = int(reformulation_response["usage"]["completion_tokens"])  # Tokens de sortie
+
+        # Calcul du coût
+        dollar_cost = self._get_price_query(
+            model="ministral-3b-latest",  # Modèle utilisé pour la reformulation
+            input_token=input_tokens,
+            output_token=output_tokens,
+        )
+
+        # Extraction de l'énergie et du GWP
+        # EcoLogits.init(providers="litellm", electricity_mix_zone="FRA") # à déjà été configuré
+
+        energy_usage, gwp = self._get_energy_usage(response=reformulation_response)
+
+        # Données de monitoring
+        monitoring_data = {
+            "input_tokens_reformulation": input_tokens,
+            "output_tokens_reformulation": output_tokens,
+            "dollar_cost_reformulation": dollar_cost,
+            "energy_usage_reformulation": energy_usage,
+            "gwp_reformulation": gwp,
+            "latency_reformulation": latency_ms,
+        }
+        print("Monitoring data model lite reformulation: ", monitoring_data)
+
+        ######################## A DISCUTER SI ON AJOUTE LES CONSOMMATIONS D'ENERGIE ET GWP AUX CONSOMMATION DU RAG ############################
+        
+        if self.analyse_safety(query=query_reformuler): # appel analyze_query(guarrail) pour vérifier la sécurité de la requête
+            return query_reformuler
+        else:
+            return "❌ La requête de l'utilisateur reformulé n'est pas sûre." 
+
+    
+
     def build_prompt(
         self, context: list[str], history: str, query: str
     ) -> list[dict[str, str]]:
@@ -76,6 +155,8 @@ class AugmentedRAG:
         Returns:
             list[dict[str, str]]: The RAG prompt in the OpenAI format
         """
+        # Reformulation du query utilisateur(orthographe et syntaxe)
+        query = self._reformulation_query(query_a_corriger=query)
 
         # Ajout de contexte pour les villes en fonction de la ville choisi par l'utilisateur
         contexte_couleur_bac_ville = ""
