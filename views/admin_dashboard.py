@@ -165,36 +165,52 @@ class AdminDashboard:
             colors = px.colors.qualitative.Pastel  
 
             # 🎭 Affichage de la section avec un meilleur titre
-            st.subheader(f"🏆 Top 5 Utilisateurs par {metric}")
+            st.subheader(f"🏆 Top 5 Users by {metric}")
 
             # DataFrame
             df = pd.DataFrame(top_users, columns=["Username", metric])
+
+            # Dynamically set the units and labels based on the selected metric
+            if metric == "Money Spent":
+                unit = "$"
+                yaxis_title = "Money Spent ($)"
+                texttemplate = "%{text:.2f} $"
+            elif metric == "Environmental Impact":
+                unit = "kgCO2eq"
+                yaxis_title = "Environmental Impact (kgCO2eq)"
+                texttemplate = "%{text:.2f} kgCO2eq"
+            else:  # For "Latency"
+                unit = "ms"
+                yaxis_title = "Latency (ms)"
+                texttemplate = "%{text:.2f} ms"
 
             # Color by user
             fig = px.bar(df, 
                         x="Username", 
                         y=metric, 
-                        title=f"Bar plot des utilisateurs consommant le plus de : {metric}", 
+                        title=f"Top Users by {metric}", 
                         color="Username",  
                         color_discrete_sequence=colors,  
                         text=metric,  
                         template="plotly_white")  
 
-            # Label and style
-            fig.update_traces(texttemplate='%{text:.2f} $', textposition='outside', marker_line_width=1.5)
-            fig.update_layout(yaxis_title=f"{metric} ($)",
-                            xaxis_title="Utilisateur",
+            # Update the chart with the corresponding units and style
+            fig.update_traces(texttemplate=texttemplate, textposition='outside', marker_line_width=1.5)
+            fig.update_layout(yaxis_title=yaxis_title,
+                            xaxis_title="User",
                             plot_bgcolor="rgba(0,0,0,0)",
                             margin=dict(l=40, r=40, t=40, b=40)
                             )  
 
-            st.dataframe(df.style.format({metric: "{:.2f} $"}), use_container_width=True)
+            # Show the data frame with formatted values
+            st.dataframe(df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True)
 
+            # Display the plot
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("No users found or no data available for the selected metric.")
         if not users:
-            st.info("Aucun utilisateur trouvé")
+            st.info("No users found.")
             return
         
 
