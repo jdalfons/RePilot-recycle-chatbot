@@ -874,6 +874,31 @@ class SQLDatabase:
             logger.error(f"Chat history retrieval failed: {e}")
             raise
 
+    def get_chat_history_user(self, username: str) -> list:
+        try:
+            self.cursor.execute(
+                """
+                SELECT  query, answer, created_at
+                FROM chatbot_history
+                WHERE username = %s
+                ORDER BY created_at ASC
+            """,
+                (username,),
+            )
+            df = pd.DataFrame(
+                self.cursor.fetchall(), columns=["query", "answer", "created_at"]
+            )
+            df = df.set_index("created_at")
+            liste = []
+            for i in range(len(df)):
+                liste.append({"role": "user", "content": df["query"][i]})
+                liste.append({"role": "assistant", "content": df["answer"][i]})
+            return liste
+
+        except Exception as e:
+            logger.error(f"Chat history retrieval failed: {e}")
+            raise
+
     def get_chat_sessions(self, username: str) -> list:
         """Retrieve chat sessions"""
         try:
