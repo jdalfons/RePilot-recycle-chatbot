@@ -320,18 +320,37 @@ class AdminDashboard:
     def _show_activity_charts(self) -> None:
         st.subheader("System Activity")
 
-        # Activity data
-        dates = pd.date_range(start="2024-03-01", end="2024-03-07")  # Dates ?
-        data = pd.DataFrame(
-            {
-                "date": dates,
-                "users": np.random.randint(5, 25, size=len(dates)),  # Random data ??
-                "chats": np.random.randint(10, 50, size=len(dates)),
-            }
+        # Sélection de la plage de dates
+        start_date = st.date_input("Start Date", value=pd.to_datetime("2025-01-28"))
+        end_date = st.date_input("End Date", value=pd.to_datetime("2025-02-03"))
+
+        # Récupérer les données de la BDD
+        activity_data = self.db.get_activity_data(
+            start_date.strftime("%Y-%m-%d"),
+            end_date.strftime("%Y-%m-%d"),
+        )
+        # print(activity_data)
+
+        # Vérifier si des données sont disponibles
+        if not activity_data:
+            st.warning("Aucune donnée trouvée pour cette période.")
+            return
+
+        # Conversion des données en DataFrame
+        data = pd.DataFrame(activity_data, columns=["date", "users", "queries"])
+        data["date"] = pd.to_datetime(data["date"])
+        # print(data) [(datetime.date(2025, 2, 1), 1, 2), (datetime.date(2025, 2, 2), 2, 9)]
+
+        # Créer le graphique
+        fig = px.line(
+            data,
+            x="date",
+            y=["users", "queries"],
+            labels={"value": "Count", "date": "Date", "variable": "Metric"},
+            title="User Activity",
         )
 
-        # Charts
-        fig = px.line(data, x="date", y=["users", "chats"], title="Daily Activity")
+        # Afficher le graphique dans Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
     # Users Page ============================================
