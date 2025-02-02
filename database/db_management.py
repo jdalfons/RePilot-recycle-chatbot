@@ -1,16 +1,11 @@
-from typing import Dict, List, Optional, Any
+from typing import List
 import pandas as pd
 import hashlib
 import os
 import json
-import jwt
-import datetime
 import logging
-from typing import Optional, Dict, Any
 from pymongo import MongoClient
 import psycopg2
-from psycopg2 import pool
-from uuid import uuid4
 from rag_simulation.schema import Query
 import time
 import litellm
@@ -45,25 +40,23 @@ def cached_generate_fake_answers(question: str, correct_answer: str):
 def get_db_connection():
     """Établit une connexion persistante avec PostgreSQL."""
     return psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DBNAME", "llm"),
-        user=os.getenv("POSTGRES_USER", "llm"),
-        password=os.getenv("POSTGRES_PASSWORD", "llm"),
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=int(os.getenv("POSTGRES_PORT", "32003")),
+        dbname=os.getenv('POSTGRES_DBNAME', 'llm'),
+        user=os.getenv('POSTGRES_USER', 'llm'),
+        password=os.getenv('POSTGRES_PASSWORD', 'llm'),
+        host=os.getenv('POSTGRES_HOST', 'localhost'),
+        port=os.getenv('POSTGRES_PORT', 25130)
     )
 
 
 class MongoDB:
-    """MongoDB management for document storage"""
-
     def __init__(
-        self,
-        db_name: str,
-        collection_name: str,
-        data_dir: str = "data",
-        host: str = "localhost",
-        port: int = 27017,
-    ):
+        self, 
+        db_name: str, 
+        collection_name: str, 
+        data_dir: str = 'data', 
+        host: str = 'localhost', 
+        port: int = 27017, 
+        uri: str = None):    
         """
         Initialize the MongoDB client with the specified host and port.
 
@@ -73,16 +66,24 @@ class MongoDB:
             data_dir (str): Directory containing JSON files
             host (str): MongoDB host address
             port (int): MongoDB port number
+            uri (str): MongoDB connection URI
         """
-        self.client = None
-        self.db = None
-        self.collection = None
         self.db_name = db_name
+        self.collection = None
         self.collection_name = collection_name
         self.data_dir = data_dir
         self.host = host
-        self.port = port
+        self.port = int(port)
+        self.uri = uri
         self.connect_to_mongodb()
+        
+        if self.host is not None:
+            self.client = MongoClient(self.host, self.port)
+        elif self.uri is not None:
+            self.client = MongoClient(self.uri)
+        else:
+            raise ValueError("Please provide either a host address or a connection URI")
+        self.db = None
 
     def connect_to_mongodb(self):
         """
@@ -239,8 +240,8 @@ class SQLDatabase:
             self.con.rollback()
 
     def save_feedback(
-        self, query_id: str, username: str, feedback: str, comment: str = None
-    ):
+            self, query_id: str, username: str, feedback: str, comment: str = None
+        ) -> bool:
         """Enregistre le feedback de l'utilisateur."""
         try:
             insert_query = """
@@ -250,9 +251,11 @@ class SQLDatabase:
             self.cursor.execute(insert_query, (query_id, username, feedback, comment))
             self.con.commit()
             print(f"✅ Feedback ajouté pour {query_id} : {feedback}")
+            return True
         except Exception as e:
             print(f"❌ Erreur lors de l'ajout du feedback : {e}")
             self.con.rollback()
+            return False
 
     @staticmethod
     def generate_fake_answers(
@@ -470,7 +473,6 @@ class SQLDatabase:
     def create_user(self, username: str, password: str, role: str = "user"):
         """Create new user with secure password hash"""
         password_hash = hashlib.md5(password.encode()).hexdigest()
-        # user_id = str(uuid4())
         try:
             self.cursor.execute(
                 """
@@ -506,12 +508,6 @@ class SQLDatabase:
         except Exception as e:
             logger.error(f"Password verification failed: {e}")
             raise
-
-    def login_user(self, username: str, password: str, role: str) -> Optional[str]:
-        """Login user and return JWT token"""
-        if self.verify_password(username, password):
-            return self.generate_jwt_token(username, role)
-        return None
 
     def create_chat_session(self, username: str, title: str) -> str:
         """Create new chat session"""
@@ -914,19 +910,6 @@ class SQLDatabase:
             return self.cursor.fetchall()
         except Exception as e:
             logger.error(f"Chat session retrieval failed: {e}")
-            raise
-
-    def generate_jwt_token(self, user_id: str, role: str) -> str:
-        """Generate JWT token"""
-        try:
-            payload = {
-                "user_id": user_id,
-                "role": role,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1),
-            }
-            return jwt.encode(payload, self.SECRET_KEY, algorithm="HS256")
-        except Exception as e:
-            logger.error(f"Token generation failed: {e}")
             raise
 
     # ============================= Gestion admins =========================================

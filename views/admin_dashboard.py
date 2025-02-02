@@ -4,7 +4,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from database.db_management import SQLDatabase
-from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
 import numpy as np
@@ -372,7 +371,6 @@ class AdminDashboard:
         # Conversion des données en DataFrame
         data = pd.DataFrame(activity_data, columns=["date", "users", "queries"])
         data["date"] = pd.to_datetime(data["date"])
-        # print(data) [(datetime.date(2025, 2, 1), 1, 2), (datetime.date(2025, 2, 2), 2, 9)]
 
         # Créer le graphique
         fig = px.line(

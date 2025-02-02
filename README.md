@@ -5,3 +5,5 @@ for chromadb in docker is necessary run before run docker compose
 ```
 docker pull chromadb/chroma 
 ```
+
+

@@ -1,13 +1,12 @@
-version: '3'
 
 services:
-  mongo:
+  mongollm:
     image: mongo:latest
     container_name: mongollm
     ports:
       - "27017:27017"
 
-  postgres:
+  llmPostgres:
     container_name: llmPostgres
     image: postgres:latest
     ports:
@@ -20,20 +19,20 @@ services:
       POSTGRES_PASSWORD: llm
       POSTGRES_INITDB_ARGS: "--auth-local=trust --auth-host=trust"
 
-  # client:
-  #   image: llm-app
-  #   build:
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8503:8503"
-  #   environment:
-  #       MONGO_HOST: mongollm
-  #       DOCKER_ENV: true
-  #       POSTGRES_HOST: llmPostgres  # Use the correct service name
-  #       POSTGRES_USER: llm
-  #       POSTGRES_PASSWORD: llm
-  #       POSTGRES_DBNAME: llm
-  #       POSTGRES_PORT: 5432  # Use the correct port
-  #       REACT_APP_CHROMA_SERVER_URL: "http://localhost:8000"
-  #       MISTRAL_API_KEY: ${MISTRAL_API_KEY}
-  #       HF_TOKEN: ${HF_TOKEN}
+  client:
+    image: llm-app
+    build:
+      dockerfile: dockerfile
+    ports:
+      - "8503:8503"
+    environment:
+        MONGO_HOST: mongollm
+        DOCKER_ENV: true
+        POSTGRES_HOST: llmPostgres  # Use the correct service name
+        POSTGRES_USER: llm
+        POSTGRES_PASSWORD: llm
+        POSTGRES_DBNAME: llm
+        POSTGRES_PORT: 5432  # Use the correct port
+        REACT_APP_CHROMA_SERVER_URL: "http://localhost:8000"
+        MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+        HF_TOKEN: ${HF_TOKEN}

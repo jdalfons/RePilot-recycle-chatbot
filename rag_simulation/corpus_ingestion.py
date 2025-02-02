@@ -13,7 +13,8 @@ from chromadb.config import Settings
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 # Charger les variables d'environnement
 load_dotenv()
-MONGO_HOST = os.getenv('MONGO_HOST', 'localhost')
+MONGO_HOST = os.getenv('MONGO_HOST', None)
+MONGO_URI = os.getenv('MONGO_URI', None)
 
 class BDDChunks:
     """
@@ -54,7 +55,7 @@ class BDDChunks:
         self.chroma_db = self.client.get_or_create_collection(name=self.collection_name)
         logging.info(f"✅ Nouvelle collection ChromaDB créée : {self.collection_name}")
 
-    def get_documents(self, collection: str = 'dechets', database: str = 'rag') -> tuple[list[str], list[str]]:
+    def get_documents(self, host, uri, collection: str = 'dechets', database: str = 'rag') -> tuple[list[str], list[str]]:
         """
         Récupère les documents de MongoDB.
 
@@ -65,7 +66,7 @@ class BDDChunks:
         Returns:
             tuple[list[str], list[str]]: Liste des documents texte et des IDs.
         """
-        mongo_db = MongoDB(db_name=database, collection_name=collection, host=MONGO_HOST)
+        mongo_db = MongoDB(db_name=database, collection_name=collection, host=host, uri=uri)
         all_documents = mongo_db.query_collection(db_name=database, collection_name=collection, query={})
 
         if not all_documents:
@@ -109,24 +110,7 @@ class BDDChunks:
             file_name = re.sub(r"\s+", "-", file_name)
             # Expected collection name that (1) contains 3-63 characters, (2) starts and ends with an alphanumeric character, (3) otherwise contains only alphanumeric characters, underscores or hyphens (-), (4) contains no two consecutive periods (..)
             self.chroma_db = self.client.get_or_create_collection(name=file_name, embedding_function=self.embeddings, metadata={"hnsw:space": "cosine"})  # type: ignore
-    def get_documents(self, host: str, collection: str='dechets', database: str='rag') -> tuple[list[str], list[str]]:
         
-        mongoDb = MongoDB(
-            db_name=database,
-            collection_name=collection, 
-            host=host
-            )
-        
-        
-
-        all_documents_list = mongoDb.query_collection(database, collection, dict()) # version originale, dict pour tout prendre, est-ce que l'output est le même ?
-        ids = [str(doc['_id']) for doc in all_documents_list]
-        documents = [" ".join([f"{k}: {v}" for k, v in doc.items() if k != '_id' and k != 'id']) for doc in all_documents_list]
-        
-        return documents, ids
-        
-        
-
     def __call__(self) -> None:
         """
         Exécute tout le pipeline d'ingestion :
@@ -135,13 +119,13 @@ class BDDChunks:
         3. Suppression et recréation d'une collection dans ChromaDB
         4. Ajout des embeddings
         """
-
         logging.info("🚀 Début du pipeline d'ingestion...")
 
         try:
-            host = MONGO_HOST if MONGO_HOST != None else 'localhost'
+            host = MONGO_HOST if MONGO_HOST != None else None
+            uri = MONGO_URI if MONGO_URI != None else None
             # Récupérer les documents et les IDs
-            corpus, ids = self.get_documents(host=host)
+            corpus, ids = self.get_documents(host=host, uri=uri)
             logging.info(f"📂 {len(corpus)} documents récupérés depuis MongoDB")
 
             # Vérifications pour éviter les erreurs
