@@ -111,39 +111,24 @@ class UserDashboard:
         bdd()
         return bdd
 
-
-    # def initialiser_message(self):
-    #     """Initialise le message de bienvenue"""
-    #     df  = db.get_chat_history_user(st.session_state.username)
-    #     if len(df) == 0:
-    #         return "Bonjour, comment puis-je vous aider ?"
+ 
 
 
     def  show_chats(self ):
-        # st.title("💬 Mes conversations")
-        # Charger la configuration
-
-        # @st.cache_resource
-        # def instantiate_bdd() -> BDDChunks:
-        #     """Initialise la base ChromaDB et évite de la recharger plusieurs fois."""
-        #     bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
-        #     bdd()
-        #     return bdd
-
-
+    
         # Add custom CSS for container sizing
         st.markdown("""
             <style>
                 .stPlotlyChart {
-                    width: 80%;
+                    width: 70%;
                 }
                 .block-container {
                     padding-top: 1rem;
                     padding-bottom: 1rem;
-                    max-width: 80%;
+                    max-width: 87%;
                 }
                 [data-testid="stMetricValue"] {
-                    width: 80%;
+                    width: 70%;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -165,14 +150,6 @@ class UserDashboard:
             horizontal=True
         )
 
-        # @st.cache_resource
-        # def instantiate_bdd() -> BDDChunks:
-        #     """Initialise la base ChromaDB et évite de la recharger plusieurs fois."""
-        #     bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
-        #     bdd()
-        #     return bdd
-
-
         # On clear le cache pour relancer la fonction si la ville a changé
         if 'previous_city' not in st.session_state:
             st.session_state['previous_city'] = st.session_state["ville_choisi"]
@@ -185,8 +162,10 @@ class UserDashboard:
 
         col1, col2 = st.columns([1, 2])
         with col1:
+            
             generation_model = st.selectbox(
-                label="Choisissez votre modèle LLM",
+                label="🤖 Choississez Assistant RePilot",
+                # label="Choisissez votre modèle LLM",
                 options=[
                     "ministral-8b-latest",
                     "ministral-3b-latest",
@@ -196,25 +175,27 @@ class UserDashboard:
             )
 
         with col2:
-            role_prompt = st.text_area(
-                label=config_chatbot.get('label'),
-                value=config_chatbot.get('value'),
-            )
+            # role_prompt = st.text_area(
+            #     label=config_chatbot.get('label'),
+            #     value=config_chatbot.get('value'),
+            # )
 
-        # Options avancées
-        with st.expander("Options avancées"):
-            col_max_tokens, col_temperature, _ = st.columns([0.25, 0.25, 0.5])
+            # Options avancées
+            st.write("🛠️ Options avancées")
+            with st.expander("Options avancées"):
+                col_max_tokens, col_temperature, _ = st.columns([0.25, 0.25, 0.5])
 
-            with col_max_tokens:
-                max_tokens = st.select_slider(
-                    label="Nombre max de tokens", options=list(range(200, 2000, 50)), value=1000
-                )
+                with col_max_tokens:
+                    max_tokens = st.select_slider(
+                        label="Nombre max de tokens", options=list(range(200, 2000, 50)), value=1000
+                    )
 
-            with col_temperature:
-                range_temperature = [round(x, 2) for x in np.linspace(0, 1.5, num=51)]
-                temperature = st.select_slider(label="Température", options=range_temperature, value=1.2)
+                with col_temperature:
+                    range_temperature = [round(x, 2) for x in np.linspace(0, 1.5, num=51)]
+                    temperature = st.select_slider(label="Température", options=range_temperature, value=1.2)
 
         # Initialisation du pipeline AugmentedRAG
+        role_prompt = config.get_role_prompt()
         llm = AugmentedRAG(
             role_prompt=role_prompt,
             generation_model=generation_model,
@@ -233,13 +214,13 @@ class UserDashboard:
         # initialisation de `response` et `query_id` pour éviter les erreurs
         historique = db.get_chat_history_user(st.session_state.username)
         st.session_state.messages = historique
-        # st.write(historique[:5])
-        # st.write(st.session_state.messages[:5])
-    
+        
         # Afficher l’historique des messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
+                #ameliorer  mettre une  barre deroulante pour les messages
                 st.markdown(message["content"])
+                # st.markdown(message["content"])
 
         # Initialisation de `response` et `query_id` pour éviter les erreurs
         response = None
@@ -438,22 +419,6 @@ class UserDashboard:
                 )
                 st.plotly_chart(fig_tokens, use_container_width=True)
 
-
-
-        # chart_tabs = st.tabs(["Latency", "Cost", "Energy"])
-        
-        # with chart_tabs[0]:
-        #     fig_latency = self.create_trend_chart(
-        #         filtered_df, 
-        #         'avg_latency',
-        #         'Response Latency',
-        #         'Time',
-        #         'Seconds'
-        #     )
-
-            # st.plotly_chart(fig_latency, use_container_width=True)
-            # st.bar_chart(filtered_df.groupby('timestamp')['avg_latency'].mean())
-
     def create_trend_chart(self, df, metric, title, x_label, y_label):
         """Helper function to create trend charts"""
         fig = go.Figure()
@@ -484,57 +449,7 @@ class UserDashboard:
             template='plotly_white'
         )
         return fig
-
-    # def show_stats(self):
-    #     """Display statistics dashboard"""
-    #     # Title Section
-    #     st.title("📊 Analytics Dashboard")
-        
-    #     # Date Filter
-    #     col1, col2 = st.columns(2)
-    #     with col1:
-    #         start_date = st.date_input("Start Date", value=self.df['timestamp'].min())
-    #     with col2:
-    #         end_date = st.date_input("End Date", value=self.df['timestamp'].max())
-        
-    #     # Filter data
-    #     mask = (self.df['timestamp'].dt.date >= start_date) & (self.df['timestamp'].dt.date <= end_date)
-    #     filtered_df = self.df[mask]
-        
-    #     # Key Metrics
-    #     metrics_cols = st.columns(4)
-    #     with metrics_cols[0]:
-    #         st.metric("Avg Latency", f"{filtered_df['avg_latency'].mean():.2f}s")
-    #     with metrics_cols[1]:
-    #         st.metric("Total Queries", len(filtered_df))
-    #     with metrics_cols[2]:
-    #         st.metric("Avg Energy", f"{filtered_df['avg_energy_usage'].mean():.2f}kWh")
-    #     with metrics_cols[3]:
-    #         st.metric("Avg Cost", f"${filtered_df['avg_query_price'].mean():.3f}")
-        
-    #     # Charts
-    #     st.subheader("Trends")
-    #     tabs = st.tabs(["Latency", "Tokens", "Energy", "Cost"])
-        
-    #     with tabs[0]:
-    #         st.line_chart(filtered_df.groupby('timestamp')['avg_latency'].mean())
-        
-    #     with tabs[1]:
-    #         token_df = filtered_df[['avg_completion_tokens', 'avg_prompt_tokens']]
-    #         st.line_chart(token_df)
-        
-    #     with tabs[2]:
-    #         st.line_chart(filtered_df.groupby('timestamp')['avg_energy_usage'].mean())
-        
-    #     with tabs[3]:
-    #         st.line_chart(filtered_df.groupby('timestamp')['avg_query_price'].mean())
-        
-    #     # Summary Statistics
-    #     st.subheader("Summary Statistics")
-    #     st.dataframe(filtered_df.describe())
-        
-
-
+    
     def _display_metrics_sidebar(self): 
         """Display key metrics in sidebar"""
         st.sidebar.subheader("📊 Statistiques")
@@ -700,59 +615,6 @@ class UserDashboard:
                 </div>
             """, unsafe_allow_html=True)
 
-    # def _display_user_stats(self):
-    #     """Display user statistics in a formatted container"""
-    #     # Calculate statistics
-    #     num_conversations = self.df['timestamp'].count()
-    #     avg_latency = self.df['avg_latency'].mean()
-    #     total_cost = self.df['avg_price'].sum()
-    #     total_energy = self.df['avg_energy_usage'].sum()
-    #     avg_gwp = self.df['avg_gwp'].mean()
-        
-    #     with st.container():
-    #         st.markdown(f"""
-    #             <div style='
-    #                 background: linear-gradient(to bottom right, #ffffff, #f8fafc);
-    #                 border: 1px solid #e2e8f0;
-    #                 border-radius: 12px;
-    #                 padding: 24px;
-    #                 margin: 16px 0;
-    #                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    #                 transition: transform 0.2s ease;
-    #             '>
-    #                 <h3 style='margin:0 0 20px 0; color:#334155; font-weight:600'>📊 User Statistics</h3>
-    #                 <div style='display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px'>
-    #                     <div class='stat-card' style='
-    #                         background: #f8fafc;
-    #                         padding: 16px;
-    #                         border-radius: 8px;
-    #                         border: 1px solid #e2e8f0;
-    #                         transition: transform 0.2s ease;
-    #                         &:hover { transform: translateY(-2px); }
-    #                     '>
-    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>💬 Conversations</p>
-    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{num_conversations}</p>
-    #                     </div>
-    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
-    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>⚡ Avg. Latency</p>
-    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{avg_latency:.2f}s</p>
-    #                     </div>
-    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
-    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>💰 Total Cost</p>
-    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>${total_cost:.2f}</p>
-    #                     </div>
-    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
-    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>🔋 Energy Used</p>
-    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{total_energy:.2f} kWh</p>
-    #                     </div>
-    #                     <div class='stat-card' style='background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0'>
-    #                         <p style='margin:0; font-size:0.9em; color:#64748b'>🌍 Average GWP</p>
-    #                         <p style='margin:8px 0; font-size:1.4em; color:#334155; font-weight:600'>{avg_gwp:.2f} kg CO₂e</p>
-    #                     </div>
-    #                 </div>
-    #             </div>
-    #         """, unsafe_allow_html=True)
-
     def _display_navigation(self):
         """Display navigation buttons in sidebar"""
         st.divider()
@@ -790,7 +652,6 @@ class UserDashboard:
                 st.rerun()
                 
         except Exception as e:
-            # logger.error(f"Dashboard display error: {e}")
             st.error("An error occurred. Please try again.")
             if st.button("🔄 Retry"):
                 st.rerun()

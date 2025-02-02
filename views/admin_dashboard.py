@@ -38,12 +38,28 @@ class AdminDashboard:
 
     def show(self) -> None:
         try:
+            st.markdown("""
+            <style>
+                .stPlotlyChart {
+                    width: 80%;
+                }
+                .block-container {
+                    padding-top: 1rem;
+                    padding-bottom: 1rem;
+                    max-width: 80%;
+                }
+                [data-testid="stMetricValue"] {
+                    width: 80%;
+                }
+            </style>
+            """, unsafe_allow_html=True)
             self.show_sidebar()
 
             pages = {
                 "overview": self.show_overview,
                 "users": self.show_users,
                 "performance": self.show_performance_quizz,
+                "logout": self.logout,
             }
 
             if st.session_state.admin_page in pages:
@@ -65,6 +81,7 @@ class AdminDashboard:
                 "📊 Overview": "overview",
                 "👥 Users": "users",
                 "📈 Performance Quizz": "performance",
+                "🔒 Logout": "logout",
             }
 
             st.divider()
@@ -80,6 +97,14 @@ class AdminDashboard:
                 ):
                     st.session_state.admin_page = page
                     st.rerun()
+    
+    def logout(self) -> None:
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.role = None
+        st.session_state.current_page = "login"
+        st.session_state.admin_page = "overview"
+        st.rerun()
 
     ##################OVERVIEW PAGE##################
     def show_overview(self) -> None:
@@ -139,143 +164,151 @@ class AdminDashboard:
         # User list
         users = self.db.get_usernames()
 
-        st.subheader("Vue des Utilisateurs qui consomment le plus")
+        # Show the list of users
+        overview_tab, user_details_tab = st.tabs(["📊 Overview", "👤 User Details"])
+    
+        with overview_tab:        
+            st.subheader("Vue des Utilisateurs qui consomment le plus")
 
-        # Plot Users that consume the most
-        metric = st.selectbox(
-            "Select metric to analyze",
-            options=["Money Spent", "Environmental Impact", "Latency"],
-            index=0,
-            help="Choose the metric to display the top 5 users.",
-        )
-
-        # Get the top 5 users by the selected metric
-        top_users = self.db.get_top_users_by_metric(metric)
-
-        if top_users:
-            # Colors palette
-            colors = px.colors.qualitative.Pastel
-
-            # 🎭 Affichage de la section avec un meilleur titre
-            st.subheader(f"🏆 Top 5 Users by {metric}")
-
-            # DataFrame
-            df = pd.DataFrame(top_users, columns=["Username", metric])
-
-            # Dynamically set the units and labels based on the selected metric
-            if metric == "Money Spent":
-                unit = "$"
-                yaxis_title = "Money Spent ($)"
-                texttemplate = "%{text:.2f} $"
-            elif metric == "Environmental Impact":
-                unit = "kgCO2eq"
-                yaxis_title = "Environmental Impact (kgCO2eq)"
-                texttemplate = "%{text:.2f} kgCO2eq"
-            else:  # For "Latency"
-                unit = "ms"
-                yaxis_title = "Latency (ms)"
-                texttemplate = "%{text:.2f} ms"
-
-            # Color by user
-            fig = px.bar(
-                df,
-                x="Username",
-                y=metric,
-                title=f"Top Users by {metric}",
-                color="Username",
-                color_discrete_sequence=colors,
-                text=metric,
-                template="plotly_white",
+            # Plot Users that consume the most
+            metric = st.selectbox(
+                "Select metric to analyze",
+                options=["Money Spent", "Environmental Impact", "Latency"],
+                index=0,
+                help="Choose the metric to display the top 5 users.",
             )
 
-            # Update the chart with the corresponding units and style
-            fig.update_traces(
-                texttemplate=texttemplate, textposition="outside", marker_line_width=1.5
-            )
-            fig.update_layout(
-                yaxis_title=yaxis_title,
-                xaxis_title="User",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=40, r=40, t=40, b=40),
+            # Get the top 5 users by the selected metric
+            top_users = self.db.get_top_users_by_metric(metric)
+
+            if top_users:
+                # Colors palette
+                colors = px.colors.qualitative.Pastel
+
+                # 🎭 Affichage de la section avec un meilleur titre
+                st.subheader(f"🏆 Top 5 Users by {metric}")
+
+                # DataFrame
+                df = pd.DataFrame(top_users, columns=["Username", metric])
+
+                # Dynamically set the units and labels based on the selected metric
+                if metric == "Money Spent":
+                    unit = "$"
+                    yaxis_title = "Money Spent ($)"
+                    texttemplate = "%{text:.2f} $"
+                elif metric == "Environmental Impact":
+                    unit = "kgCO2eq"
+                    yaxis_title = "Environmental Impact (kgCO2eq)"
+                    texttemplate = "%{text:.2f} kgCO2eq"
+                else:  # For "Latency"
+                    unit = "ms"
+                    yaxis_title = "Latency (ms)"
+                    texttemplate = "%{text:.2f} ms"
+
+                # Color by user
+                fig = px.bar(
+                    df,
+                    x="Username",
+                    y=metric,
+                    title=f"Top Users by {metric}",
+                    color="Username",
+                    color_discrete_sequence=colors,
+                    text=metric,
+                    template="plotly_white",
+                )
+
+                # Update the chart with the corresponding units and style
+                fig.update_traces(
+                    texttemplate=texttemplate, textposition="outside", marker_line_width=1.5
+                )
+                fig.update_layout(
+                    yaxis_title=yaxis_title,
+                    xaxis_title="User",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=40, r=40, t=40, b=40),
+                )
+
+                # Show the data frame with formatted values
+                st.dataframe(
+                    df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True
+                )
+
+                # Display the plot
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No users found or no data available for the selected metric.")
+            if not users:
+                st.info("No users found.")
+                return
+
+        with user_details_tab:
+            # Vue of specific user
+            st.subheader("👤 Vue d'un Utilisateur spécifique")
+
+            # select user
+            selected_user = st.selectbox("Sélectionnez un utilisateur", users)
+
+            # Get users' general info
+            user_info = self.db.get_user_details(selected_user)
+            user_stats = self.db.get_user_statistics(selected_user)
+            user_feedback = self.db.get_user_feedback(selected_user)
+            user_quiz = self.db.get_user_quiz_responses(selected_user)
+
+            # user's general info
+            st.subheader("📋 Informations de base")
+            st.write(f"**Nom d'utilisateur :** {user_info['username']}")
+            st.write(f"**Rôle :** {user_info['role']}")
+            st.write(f"**Date de création :** {user_info['created_at']}")
+            st.write(
+                f"**Statut :** {'✅ Actif' if user_info['is_active'] else '❌ Inactif'}"
             )
 
-            # Show the data frame with formatted values
+            # Statistics of the user
+            st.subheader("📊 Statistiques d'utilisation")
+            stats_df = pd.DataFrame([user_stats])
             st.dataframe(
-                df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True
+                stats_df.style.format(
+                    {
+                        "Money Spent": "{:.2f} $",
+                        "Environmental Impact": "{:.2f} kgCO2eq",
+                        "Latency": "{:.2f} ms",
+                    }
+                )
             )
 
-            # Display the plot
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No users found or no data available for the selected metric.")
-        if not users:
-            st.info("No users found.")
-            return
+            # Feedbacks of the user
+            st.subheader("📝 Historique des feedbacks")
+            if not user_feedback:
+                st.write("Aucun feedback trouvé")
+            else:
+                feedback_df = pd.DataFrame(
+                    user_feedback, columns=["Feedback", "Commentaire", "Date"]
+                )
+                st.dataframe(feedback_df)
 
-        # Vue of specific user
-        st.subheader("👤 Vue d'un Utilisateur spécifique")
+            # Users' quiz history
+            st.subheader("🎯 Historique des quiz")
+            if not user_quiz:
+                st.write("Aucune réponse aux quiz trouvée")
+            else:
+                quiz_df = pd.DataFrame(
+                    user_quiz,
+                    columns=["Question", "Réponse", "Bonne réponse", "Statut", "Date"],
+                )
+                quiz_df["Statut"] = quiz_df["Statut"].apply(
+                    lambda x: "✅ Correct" if x else "❌ Incorrect"
+                )
+                st.dataframe(quiz_df)
 
-        # select user
-        selected_user = st.selectbox("Sélectionnez un utilisateur", users)
+            # Delete user
+            st.subheader("🗑️ Supprimer l'utilisateur")
+            if st.button(f"Supprimer {selected_user}", type="primary"):
+                self.delete_user_and_data(selected_user)
+                st.success(f"Utilisateur {selected_user} supprimé avec succès.")
 
-        # Get users' general info
-        user_info = self.db.get_user_details(selected_user)
-        user_stats = self.db.get_user_statistics(selected_user)
-        user_feedback = self.db.get_user_feedback(selected_user)
-        user_quiz = self.db.get_user_quiz_responses(selected_user)
-
-        # user's general info
-        st.subheader("📋 Informations de base")
-        st.write(f"**Nom d'utilisateur :** {user_info['username']}")
-        st.write(f"**Rôle :** {user_info['role']}")
-        st.write(f"**Date de création :** {user_info['created_at']}")
-        st.write(
-            f"**Statut :** {'✅ Actif' if user_info['is_active'] else '❌ Inactif'}"
-        )
-
-        # Statistics of the user
-        st.subheader("📊 Statistiques d'utilisation")
-        stats_df = pd.DataFrame([user_stats])
-        st.dataframe(
-            stats_df.style.format(
-                {
-                    "Money Spent": "{:.2f} $",
-                    "Environmental Impact": "{:.2f} kgCO2eq",
-                    "Latency": "{:.2f} ms",
-                }
-            )
-        )
-
-        # Feedbacks of the user
-        st.subheader("📝 Historique des feedbacks")
-        if not user_feedback:
-            st.write("Aucun feedback trouvé")
-        else:
-            feedback_df = pd.DataFrame(
-                user_feedback, columns=["Feedback", "Commentaire", "Date"]
-            )
-            st.dataframe(feedback_df)
-
-        # Users' quiz history
-        st.subheader("🎯 Historique des quiz")
-        if not user_quiz:
-            st.write("Aucune réponse aux quiz trouvée")
-        else:
-            quiz_df = pd.DataFrame(
-                user_quiz,
-                columns=["Question", "Réponse", "Bonne réponse", "Statut", "Date"],
-            )
-            quiz_df["Statut"] = quiz_df["Statut"].apply(
-                lambda x: "✅ Correct" if x else "❌ Incorrect"
-            )
-            st.dataframe(quiz_df)
-
-        # Delete user
-        st.subheader("🗑️ Supprimer l'utilisateur")
-        if st.button(f"Supprimer {selected_user}", type="primary"):
-            self.delete_user_and_data(selected_user)
-            st.success(f"Utilisateur {selected_user} supprimé avec succès.")
-
+    
+    
+    
     ##################QUIZZ GLOBAL REVIEWS ##################
     def show_performance_quizz(self) -> None:
         st.title("📈 Monitoring des Quizz")
