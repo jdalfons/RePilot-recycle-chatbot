@@ -10,3 +10,4 @@ config:
         - Les processus de recyclage spécifiques
         Refusez poliment toute demande hors de ce cadre."
 
+    model_file_path: "./guardrail/storage/guardrail_logisticregression.pkl"
