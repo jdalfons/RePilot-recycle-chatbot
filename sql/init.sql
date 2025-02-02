@@ -1,12 +1,16 @@
+ 
 -- Supprimer les tables existantes si elles existent
 DROP TABLE IF EXISTS quiz_responses;
 DROP TABLE IF EXISTS quiz_questions;
 DROP TABLE IF EXISTS chatbot_feedback;
+ 
 DROP TABLE IF EXISTS chatbot_history;
 DROP TABLE IF EXISTS chat_sessions;
 DROP TABLE IF EXISTS users;
 
+ 
 -- Table des utilisateurs
+ 
 CREATE TABLE users (
     username TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
@@ -40,7 +44,9 @@ CREATE TABLE chatbot_history (
     query_price REAL,
     energy_usage REAL,
     gwp REAL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
 
 
@@ -77,6 +83,10 @@ CREATE TABLE quiz_responses (
 -- Default Admin User
 INSERT INTO users (username, password_hash, role) 
 VALUES ('admin', md5('admin123'), 'admin');
+
+
+INSERT INTO users (username, password_hash, role) 
+VALUES ('admin2', md5('admin123'), 'admin');
 
 -- Default Regular User
 INSERT INTO users (username, password_hash, role) 
