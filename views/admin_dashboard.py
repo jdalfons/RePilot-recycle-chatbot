@@ -11,18 +11,11 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class SystemMetrics:
-    cpu_usage: float
-    memory_usage: float
-    response_time: float
-    success_rate: float
 
 class AdminDashboard:
     def __init__(self) -> None:
         try:
             self.db = SQLDatabase(db_name="poc_rag")
-            self.metrics = SystemMetrics(0.0, 0.0, 0.0, 0.0)
             self.init_session_state()
             logger.info("Admin dashboard initialized")
         except Exception as e:
@@ -50,9 +43,7 @@ class AdminDashboard:
             pages = {
                 "overview": self.show_overview,
                 "users": self.show_users,
-                "chats": self.show_chats,
                 "performance": self.show_performance_quizz,
-                "settings": self.show_settings
             }
             
             if st.session_state.admin_page in pages:
@@ -73,9 +64,7 @@ class AdminDashboard:
             pages = {
                 "📊 Overview": "overview",
                 "👥 Users": "users",
-                "💬 Chats": "chats",
                 "📈 Performance Quizz": "performance",
-                "⚙️ Settings": "settings"
             }
             
             st.divider()
@@ -262,34 +251,8 @@ class AdminDashboard:
             st.success(f"Utilisateur {selected_user} supprimé avec succès.")
 
 
-    ##################CHATS PAGE##################
-    def show_chats(self) -> None:
-        st.title("💬 Chat Monitor")
-        
-        # Filters
-        col1, col2, col3 = st.columns([2, 2, 1])
-        with col1:
-            date_range = st.select_slider(
-                "Time Range",
-                options=["24h", "7d", "30d", "All"],
-                value="7d"
-            )
-        with col2:
-            user_filter = st.selectbox(
-                "User",
-                ["All"] + self.db.get_usernames()
-            )
-        with col3:
-            st.button("Export", type="primary")
 
-        # Chat history
-        chats = self.db.get_all_chats()
-        if chats:
-            self._display_chat_history(chats)
-        else:
-            st.info("No chats found")
-
-    ##################P ERFORMANCES DES QUIZZ ##################
+    ##################QUIZZ GLOBAL REVIEWS ##################
     def show_performance_quizz(self) -> None:
         st.title("📈 Monitoring des Quizz")
         col1, col2, col3 = st.columns(3)
@@ -317,23 +280,6 @@ class AdminDashboard:
             st.write("Aucune donnée disponible.")
         
         
-
-    ##################SETTINGS PAGE##################
-    def show_settings(self) -> None:
-        st.title("⚙️ System Settings")
-        
-        with st.form("settings"):
-            st.subheader("Configuration")
-            model = st.selectbox("LLM Model", ["GPT-4", "Claude", "Llama"])
-            temp = st.slider("Temperature", 0.0, 2.0, 1.0)
-            tokens = st.number_input("Max Tokens", 100, 2000, 1000)
-            
-            if st.form_submit_button("Save"):
-                try:
-                    # Save settings logic
-                    st.success("Settings updated")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
 
 
 
