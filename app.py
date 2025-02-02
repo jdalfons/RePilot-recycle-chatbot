@@ -5,15 +5,7 @@ import os
 
 from views import admin_dashboard, login, user_dashboard
 from rag_simulation.rag_augmented import AugmentedRAG
-
-
-    # """Configure page settings"""
-    # st.set_page_config(
-    #     page_title="RePilot Chatbot",
-    #     page_icon="🤖",
-    #     layout="centered",
-    #     initial_sidebar_state="expanded"
-    # )
+ 
 
  
 class MainApp:
@@ -57,15 +49,7 @@ class MainApp:
             else:
                 st.session_state.current_page = "user_dashboard"
                 
-            # page = st.radio("Aller à", pages)
-
-            # st.session_state.current_page = page.lower().replace(" ", "_")
-            
-            # if st.button("Déconnexion"):
-            #     st.session_state.authenticated = False
-            #     st.session_state.username = None
-            #     st.session_state.role = None
-            #     st.rerun()
+ 
 
     def check_auth(self):
         """Verify authentication status"""
