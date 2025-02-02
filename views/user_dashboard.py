@@ -112,6 +112,11 @@ class UserDashboard:
         return bdd
 
 
+    # def initialiser_message(self):
+    #     """Initialise le message de bienvenue"""
+    #     df  = db.get_chat_history_user(st.session_state.username)
+    #     if len(df) == 0:
+    #         return "Bonjour, comment puis-je vous aider ?"
 
 
     def  show_chats(self ):
@@ -223,7 +228,14 @@ class UserDashboard:
         # Gestion de l'historique des messages
         if "messages" not in st.session_state:
             st.session_state.messages = []
+        
 
+        # initialisation de `response` et `query_id` pour éviter les erreurs
+        historique = db.get_chat_history_user(st.session_state.username)
+        st.session_state.messages = historique
+        # st.write(historique[:5])
+        # st.write(st.session_state.messages[:5])
+    
         # Afficher l’historique des messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
@@ -248,6 +260,7 @@ class UserDashboard:
             query_obj = llm(
                 query=query,
                 history=st.session_state.messages,
+                username1=st.session_state.username
             )
 
             if isinstance(query_obj, str):

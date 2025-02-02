@@ -274,7 +274,7 @@ class AugmentedRAG:
         else:
             return "**Guardrail activé**: Vous semblez vouloir détourner mon comportement! Veuillez reformuler. 🛡"
 
-    def __call__(self, query: str, history: dict[str, str]) -> str:
+    def __call__(self, query: str, history: dict[str, str], username1: str) -> str:
         """
         Exécute le processus RAG pour générer une réponse.
 
@@ -321,6 +321,8 @@ class AugmentedRAG:
                 query_price=query_obj.query_price,
                 energy_usage=query_obj.energy_usage,
                 gwp=query_obj.gwp,
+                username=username1,
+
             )
 
             return self.get_response(response=query_obj)
