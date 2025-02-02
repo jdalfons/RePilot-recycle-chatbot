@@ -300,8 +300,8 @@ class AdminDashboard:
 
         with col2:
             avg_answers = self.db.get_average_answers_per_quiz()
-            st.metric("📊 Réponses moyennes par quiz", avg_answers)
-
+            avg_answers_float = float(avg_answers) if avg_answers is not None else 0.0
+            st.metric("📊 Réponses moyennes par quiz", f"{avg_answers_float:.2f}")
         with col3:
             success_rate = self.db.get_quiz_success_rate()
             st.metric("✅ Taux de réussite moyen (%)", f"{success_rate} %")
