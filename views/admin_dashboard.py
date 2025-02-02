@@ -57,7 +57,7 @@ class AdminDashboard:
             pages = {
                 "overview": self.show_overview,
                 "users": self.show_users,
-                "performance": self.show_performance_quizz,
+                # "performance": self.show_performance_quizz,
                 "logout": self.logout,
             }
 
@@ -79,7 +79,7 @@ class AdminDashboard:
             pages = {
                 "📊 Overview": "overview",
                 "👥 Users": "users",
-                "📈 Performance Quizz": "performance",
+                # "📈 Performance Quizz": "performance",
                 "🔒 Logout": "logout",
             }
 
@@ -152,15 +152,7 @@ class AdminDashboard:
 
     def show_users(self) -> None:
         st.title("👥 User Management")
-        # Commenter car vide pour le moment
-        # # Filters
-        # col1, col2 = st.columns([3, 1])
-        # with col1:
-        #     search = st.text_input("🔍 Search users")
-        # with col2:
-        #     status = st.selectbox("Status", ["All", "Active", "Inactive"])
-
-        # User list
+ 
         users = self.db.get_usernames()
 
         # Show the list of users
@@ -308,35 +300,7 @@ class AdminDashboard:
     
     
     
-    ##################QUIZZ GLOBAL REVIEWS ##################
-    def show_performance_quizz(self) -> None:
-        st.title("📈 Monitoring des Quizz")
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            total_quiz = self.db.get_total_quiz_count()
-            st.metric("📋 Nombre total de quiz", total_quiz)
-
-        with col2:
-            avg_answers = self.db.get_average_answers_per_quiz()
-            avg_answers_float = float(avg_answers) if avg_answers is not None else 0.0
-            st.metric("📊 Réponses moyennes par quiz", f"{avg_answers_float:.2f}")
-        with col3:
-            success_rate = self.db.get_quiz_success_rate()
-            st.metric("✅ Taux de réussite moyen (%)", f"{success_rate} %")
-
-        # 2️⃣ Top utilisateurs par taux de réussite
-        st.subheader("🏆 Meilleurs utilisateurs (Top 5)")
-
-        top_users = self.db.get_top_users_by_success()
-        if top_users:
-            df_top_users = pd.DataFrame(
-                top_users, columns=["Utilisateur", "Taux de réussite (%)"]
-            )
-            st.dataframe(df_top_users)
-        else:
-            st.write("Aucune donnée disponible.")
-
+     
     # Fonctions utils  02/02
     # Overview Page ============================================
     def get_usage_statistics(self) -> Dict[str, Any]:
