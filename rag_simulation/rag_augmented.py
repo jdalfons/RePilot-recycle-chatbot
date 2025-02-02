@@ -57,11 +57,11 @@ class AugmentedRAG:
         self.db = db
         self.selected_city = selected_city
         self.embedding_name = self.bdd.embedding_name
-      
+
         # Vérification de l'initialisation correcte
         if not self.bdd:
             raise ValueError("❌ L'instance BDDChunks n'est pas initialisée !")
-    
+
     def build_prompt(
         self, context: list[str], history: str, query: str
     ) -> list[dict[str, str]]:
@@ -95,7 +95,7 @@ class AugmentedRAG:
             Trier les bouteilles, bocaux et pots en verre dans le bac blanc ou Trilib' ou colonne à verre.
             Trier les déchets alimentaires dans le bac marron.
             Les déchets non triables doivent être jetés dans le bac vert ou gris après vérification (non encombrant, dangereux, médicaments, batteries)."""
-        
+
         context_joined = "\n".join(context)
         system_prompt = self.role_prompt
         history_prompt = f"""
@@ -115,8 +115,14 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {"role": "assistant", "content": history_prompt}, # devrait plutôt être assistant ? (réponses antérieurs du model)
-            {"role": "assistant", "content": context_prompt}, # devrait plutôt être assistant ? (maintenir le contexte)
+            {
+                "role": "assistant",
+                "content": history_prompt,
+            },  # devrait plutôt être assistant ? (réponses antérieurs du model)
+            {
+                "role": "assistant",
+                "content": context_prompt,
+            },  # devrait plutôt être assistant ? (maintenir le contexte)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -208,7 +214,7 @@ class AugmentedRAG:
             Query: A Query object containing the response from the LLM and related data.
         """
         # Generate the response from the LLM using the provided prompt
-    
+
         chat_response: dict[str, Any] = self._generate(prompt_dict=prompt_dict)
         # Extract relevant information from the response
         latency = chat_response["latency_ms"]
@@ -225,22 +231,21 @@ class AugmentedRAG:
         # Create and return a Query object with all the gathered data
 
         query_obj = Query(
-        query_id=str(uuid.uuid4()),
-        query=query,
-        answer=str(chat_response["result"].choices[0].message.content),
-        context="\n".join(context),
-        safe=safe,
-        energy_usage=energy_usage,
-        gwp=gwp,
-        latency=latency,
-        completion_tokens=output_tokens,
-        prompt_tokens=input_tokens,
-        query_price=dollar_cost,
-        embedding_model=self.bdd.embedding_model.__class__.__name__,
-        generative_model=self.llm,
-    )
+            query_id=str(uuid.uuid4()),
+            query=query,
+            answer=str(chat_response["result"].choices[0].message.content),
+            context="\n".join(context),
+            safe=safe,
+            energy_usage=energy_usage,
+            gwp=gwp,
+            latency=latency,
+            completion_tokens=output_tokens,
+            prompt_tokens=input_tokens,
+            query_price=dollar_cost,
+            embedding_model=self.bdd.embedding_model.__class__.__name__,
+            generative_model=self.llm,
+        )
         return query_obj
-        
 
     def analyse_safety(self, query: str) -> bool:
         """
@@ -281,38 +286,45 @@ class AugmentedRAG:
             str: Réponse générée.
         """
         try:
-            results = self.bdd.chroma_db.query(query_texts=[query + f" ville: {self.selected_city}"],
-            n_results=self.top_n,) # Mettre n_results limite le rag à 2 résultats pour l'instant)
-      
+            results = self.bdd.chroma_db.query(
+                query_texts=[query + f" ville: {self.selected_city}"],
+                n_results=self.top_n,
+            )  # Mettre n_results limite le rag à 2 résultats pour l'instant)
+
             if not results["documents"]:
-                return "❌ Aucun document pertinent trouvé pour répondre à votre question."
+                return (
+                    "❌ Aucun document pertinent trouvé pour répondre à votre question."
+                )
 
             chunks_list = results["documents"][0]
             print("Building prompt...")
-            prompt_rag = self.build_prompt(context=chunks_list, history=str(history), query=query)
-
-            query_obj = self.call_model(query=query, context=chunks_list, prompt_dict=prompt_rag)
-            
-             # ✅ Enregistrement dans la base
-            self.db.add_query(
-            query_id=query_obj.query_id,
-            query=query_obj.query,
-            answer=query_obj.answer,
-            embedding_model=query_obj.embedding_model,
-            generative_model=query_obj.generative_model,
-            context=query_obj.context,
-            safe=query_obj.safe,
-            latency=query_obj.latency,
-            completion_tokens=query_obj.completion_tokens,
-            prompt_tokens=query_obj.prompt_tokens,
-            query_price=query_obj.query_price,
-            energy_usage=query_obj.energy_usage,
-            gwp=query_obj.gwp,
+            prompt_rag = self.build_prompt(
+                context=chunks_list, history=str(history), query=query
             )
 
-            return self.get_response(response=query_obj) 
+            query_obj = self.call_model(
+                query=query, context=chunks_list, prompt_dict=prompt_rag
+            )
+
+            # ✅ Enregistrement dans la base
+            self.db.add_query(
+                query_id=query_obj.query_id,
+                query=query_obj.query,
+                answer=query_obj.answer,
+                embedding_model=query_obj.embedding_model,
+                generative_model=query_obj.generative_model,
+                context=query_obj.context,
+                safe=query_obj.safe,
+                latency=query_obj.latency,
+                completion_tokens=query_obj.completion_tokens,
+                prompt_tokens=query_obj.prompt_tokens,
+                query_price=query_obj.query_price,
+                energy_usage=query_obj.energy_usage,
+                gwp=query_obj.gwp,
+            )
+
+            return self.get_response(response=query_obj)
 
         except Exception as e:
             logging.error(f"❌ Erreur dans AugmentedRAG : {e}")
             return "Une erreur s'est produite lors du traitement de votre requête."
-

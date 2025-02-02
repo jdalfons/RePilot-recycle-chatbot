@@ -30,7 +30,7 @@ class AdminDashboard:
             "date_range": "7d",
             "filter_status": "all",
             "view_mode": "grid",
-            "selected_metrics": ["cpu", "memory", "response_time"]
+            "selected_metrics": ["cpu", "memory", "response_time"],
         }
         for key, value in defaults.items():
             if key not in st.session_state:
@@ -39,13 +39,13 @@ class AdminDashboard:
     def show(self) -> None:
         try:
             self.show_sidebar()
-            
+
             pages = {
                 "overview": self.show_overview,
                 "users": self.show_users,
                 "performance": self.show_performance_quizz,
             }
-            
+
             if st.session_state.admin_page in pages:
                 pages[st.session_state.admin_page]()
             else:
@@ -59,28 +59,34 @@ class AdminDashboard:
     def show_sidebar(self) -> None:
         with st.sidebar:
             st.title("🎛️ Admin Panel")
-            
+
             # Navigation
             pages = {
                 "📊 Overview": "overview",
                 "👥 Users": "users",
                 "📈 Performance Quizz": "performance",
             }
-            
+
             st.divider()
             for label, page in pages.items():
-                if st.button(label, use_container_width=True,
-                           type="primary" if st.session_state.admin_page == page else "secondary"):
+                if st.button(
+                    label,
+                    use_container_width=True,
+                    type=(
+                        "primary"
+                        if st.session_state.admin_page == page
+                        else "secondary"
+                    ),
+                ):
                     st.session_state.admin_page = page
                     st.rerun()
-
 
     ##################OVERVIEW PAGE##################
     def show_overview(self) -> None:
         st.title("📊 System Overview")
-        
+
         stats = self.get_usage_statistics()
-        
+
         # First row - User Activity Metrics
         users_col, chats_col, queries_col = st.columns(3)
         with users_col:
@@ -90,7 +96,7 @@ class AdminDashboard:
         with queries_col:
             queries = stats.get("total_queries", 0)
             st.metric("📝 Total Queries", f"{queries:,}")
-        
+
         # Second row - Performance Metrics
         latency_col, safety_col, model_col = st.columns(3)
         with latency_col:
@@ -102,7 +108,7 @@ class AdminDashboard:
         with model_col:
             most_used_model = stats.get("most_used_model", "N/A")
             st.metric("🧠 Most Used Model", most_used_model)
-        
+
         # Third row - Environmental & Cost Metrics
         energy_col, impact_col, cost_col = st.columns(3)
         with energy_col:
@@ -115,14 +121,11 @@ class AdminDashboard:
             cost = round(stats.get("total_cost", 0), 2)
             st.metric("💰 Total Cost", f"${cost:,.2f}")
 
-
-
         # Charts
         self._show_activity_charts()
 
     ###########################="USERS PAGE=###################
-    
-    
+
     def show_users(self) -> None:
         st.title("👥 User Management")
         # Commenter car vide pour le moment
@@ -135,7 +138,7 @@ class AdminDashboard:
 
         # User list
         users = self.db.get_usernames()
-        
+
         st.subheader("Vue des Utilisateurs qui consomment le plus")
 
         # Plot Users that consume the most
@@ -143,7 +146,7 @@ class AdminDashboard:
             "Select metric to analyze",
             options=["Money Spent", "Environmental Impact", "Latency"],
             index=0,
-            help="Choose the metric to display the top 5 users."
+            help="Choose the metric to display the top 5 users.",
         )
 
         # Get the top 5 users by the selected metric
@@ -151,7 +154,7 @@ class AdminDashboard:
 
         if top_users:
             # Colors palette
-            colors = px.colors.qualitative.Pastel  
+            colors = px.colors.qualitative.Pastel
 
             # 🎭 Affichage de la section avec un meilleur titre
             st.subheader(f"🏆 Top 5 Users by {metric}")
@@ -174,25 +177,32 @@ class AdminDashboard:
                 texttemplate = "%{text:.2f} ms"
 
             # Color by user
-            fig = px.bar(df, 
-                        x="Username", 
-                        y=metric, 
-                        title=f"Top Users by {metric}", 
-                        color="Username",  
-                        color_discrete_sequence=colors,  
-                        text=metric,  
-                        template="plotly_white")  
+            fig = px.bar(
+                df,
+                x="Username",
+                y=metric,
+                title=f"Top Users by {metric}",
+                color="Username",
+                color_discrete_sequence=colors,
+                text=metric,
+                template="plotly_white",
+            )
 
             # Update the chart with the corresponding units and style
-            fig.update_traces(texttemplate=texttemplate, textposition='outside', marker_line_width=1.5)
-            fig.update_layout(yaxis_title=yaxis_title,
-                            xaxis_title="User",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            margin=dict(l=40, r=40, t=40, b=40)
-                            )  
+            fig.update_traces(
+                texttemplate=texttemplate, textposition="outside", marker_line_width=1.5
+            )
+            fig.update_layout(
+                yaxis_title=yaxis_title,
+                xaxis_title="User",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=40, r=40, t=40, b=40),
+            )
 
             # Show the data frame with formatted values
-            st.dataframe(df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True)
+            st.dataframe(
+                df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True
+            )
 
             # Display the plot
             st.plotly_chart(fig, use_container_width=True)
@@ -201,7 +211,6 @@ class AdminDashboard:
         if not users:
             st.info("No users found.")
             return
-        
 
         # Vue of specific user
         st.subheader("👤 Vue d'un Utilisateur spécifique")
@@ -220,19 +229,31 @@ class AdminDashboard:
         st.write(f"**Nom d'utilisateur :** {user_info['username']}")
         st.write(f"**Rôle :** {user_info['role']}")
         st.write(f"**Date de création :** {user_info['created_at']}")
-        st.write(f"**Statut :** {'✅ Actif' if user_info['is_active'] else '❌ Inactif'}")
+        st.write(
+            f"**Statut :** {'✅ Actif' if user_info['is_active'] else '❌ Inactif'}"
+        )
 
         # Statistics of the user
         st.subheader("📊 Statistiques d'utilisation")
         stats_df = pd.DataFrame([user_stats])
-        st.dataframe(stats_df.style.format({"Money Spent": "{:.2f} $", "Environmental Impact": "{:.2f} kgCO2eq", "Latency": "{:.2f} ms"}))
+        st.dataframe(
+            stats_df.style.format(
+                {
+                    "Money Spent": "{:.2f} $",
+                    "Environmental Impact": "{:.2f} kgCO2eq",
+                    "Latency": "{:.2f} ms",
+                }
+            )
+        )
 
         # Feedbacks of the user
         st.subheader("📝 Historique des feedbacks")
         if not user_feedback:
             st.write("Aucun feedback trouvé")
         else:
-            feedback_df = pd.DataFrame(user_feedback, columns=["Feedback", "Commentaire", "Date"])
+            feedback_df = pd.DataFrame(
+                user_feedback, columns=["Feedback", "Commentaire", "Date"]
+            )
             st.dataframe(feedback_df)
 
         # Users' quiz history
@@ -240,8 +261,13 @@ class AdminDashboard:
         if not user_quiz:
             st.write("Aucune réponse aux quiz trouvée")
         else:
-            quiz_df = pd.DataFrame(user_quiz, columns=["Question", "Réponse", "Bonne réponse", "Statut", "Date"])
-            quiz_df["Statut"] = quiz_df["Statut"].apply(lambda x: "✅ Correct" if x else "❌ Incorrect")
+            quiz_df = pd.DataFrame(
+                user_quiz,
+                columns=["Question", "Réponse", "Bonne réponse", "Statut", "Date"],
+            )
+            quiz_df["Statut"] = quiz_df["Statut"].apply(
+                lambda x: "✅ Correct" if x else "❌ Incorrect"
+            )
             st.dataframe(quiz_df)
 
         # Delete user
@@ -249,8 +275,6 @@ class AdminDashboard:
         if st.button(f"Supprimer {selected_user}", type="primary"):
             self.delete_user_and_data(selected_user)
             st.success(f"Utilisateur {selected_user} supprimé avec succès.")
-
-
 
     ##################QUIZZ GLOBAL REVIEWS ##################
     def show_performance_quizz(self) -> None:
@@ -274,14 +298,12 @@ class AdminDashboard:
 
         top_users = self.db.get_top_users_by_success()
         if top_users:
-            df_top_users = pd.DataFrame(top_users, columns=["Utilisateur", "Taux de réussite (%)"])
+            df_top_users = pd.DataFrame(
+                top_users, columns=["Utilisateur", "Taux de réussite (%)"]
+            )
             st.dataframe(df_top_users)
         else:
             st.write("Aucune donnée disponible.")
-        
-        
-
-
 
     # Fonctions utils  02/02
     # Overview Page ============================================
@@ -297,18 +319,19 @@ class AdminDashboard:
 
     def _show_activity_charts(self) -> None:
         st.subheader("System Activity")
-        
+
         # Activity data
-        dates = pd.date_range(start='2024-03-01', end='2024-03-07') # Dates ?
-        data = pd.DataFrame({
-            'date': dates,
-            'users': np.random.randint(5, 25, size=len(dates)), # Random data ??
-            'chats': np.random.randint(10, 50, size=len(dates))
-        })
-        
+        dates = pd.date_range(start="2024-03-01", end="2024-03-07")  # Dates ?
+        data = pd.DataFrame(
+            {
+                "date": dates,
+                "users": np.random.randint(5, 25, size=len(dates)),  # Random data ??
+                "chats": np.random.randint(10, 50, size=len(dates)),
+            }
+        )
+
         # Charts
-        fig = px.line(data, x='date', y=['users', 'chats'],
-                     title="Daily Activity")
+        fig = px.line(data, x="date", y=["users", "chats"], title="Daily Activity")
         st.plotly_chart(fig, use_container_width=True)
 
     # Users Page ============================================
@@ -316,7 +339,9 @@ class AdminDashboard:
         """Delete a user and all associated data"""
         try:
             if self.db.delete_user_and_data(username):
-                st.success(f"User '{username}' and all associated data have been deleted.")
+                st.success(
+                    f"User '{username}' and all associated data have been deleted."
+                )
             else:
                 st.error(f"Failed to delete user '{username}'.")
         except Exception as e:
@@ -327,6 +352,7 @@ class AdminDashboard:
 def show():
     interface = AdminDashboard()
     return interface.show()
+
 
 if __name__ == "__main__":
     show()
