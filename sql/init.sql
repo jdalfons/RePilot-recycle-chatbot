@@ -43,6 +43,21 @@ CREATE TABLE chatbot_history (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE llm_logs_quiz (
+    log_id SERIAL PRIMARY KEY,
+    username TEXT REFERENCES users(username),  -- 🔹 Associe chaque appel à un utilisateur
+    query TEXT NOT NULL,  -- La question envoyée au LLM
+    response TEXT,  -- La réponse retournée par le LLM
+    generative_model TEXT NOT NULL,  -- Modèle utilisé (ex: "mistral-large")
+    safe BOOLEAN DEFAULT true,  -- Si la réponse est jugée sûre
+    energy_usage REAL,  -- Consommation d’énergie
+    gwp REAL,  -- Potentiel de réchauffement global
+    completion_tokens INT,  -- Nombre de tokens générés
+    prompt_tokens INT,  -- Nombre de tokens envoyés
+    query_price REAL,  -- Prix estimé de la requête
+    execution_time_ms FLOAT,  -- Temps total d’exécution du traitement
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Date et heure de l’appel
+);
 
 -- Table des feedbacks utilisateur
 CREATE TABLE chatbot_feedback (

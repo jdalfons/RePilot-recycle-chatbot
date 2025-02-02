@@ -11,14 +11,14 @@ st.set_page_config(
 
 st.title("🧠 Quiz basé sur vos questions")
 
-username = "user"  # 🔹 À remplacer par un système d'authentification réel
+username = "user"  # 🔹 À remplacer par un vrai système d'authentification
 
 # ✅ Cache pour éviter de recharger les mêmes questions en boucle
 @st.cache_data(ttl=600)
 def get_cached_quiz_questions(username: str):
     return db.get_quiz_questions(username=username, limit=5)
 
-# ✅ Stocker les données dans `st.session_state` pour éviter leur réinitialisation
+# ✅ Initialisation des données stockées en `session_state`
 if "quiz_data" not in st.session_state:
     st.session_state.quiz_data = get_cached_quiz_questions(username=username)
     st.session_state.answers = {}  # Stocke les réponses de l'utilisateur
@@ -67,32 +67,50 @@ else:
             if st.session_state.answers.get(f"question_{i}", "") == quiz["correct_answer"]
         )
 
-# ✅ Affichage des résultats après validation
+# ✅ **Affichage des résultats uniquement après validation**
 if st.session_state.get("show_results", False):
-    st.markdown("---")  # Ligne de séparation
-    st.subheader(f"📊 Résultats du quiz : {st.session_state.score}/{len(quiz_data)}")
 
-    for i, quiz in enumerate(quiz_data):
-        question_key = f"question_{i}"
-        selected_answer = st.session_state.answers.get(question_key, "")
+    # ✅ Calcul du pourcentage de réussite
+    total_questions = len(st.session_state.quiz_data)
+    score_percentage = (st.session_state.score / total_questions) * 100
 
-        if selected_answer == quiz["correct_answer"]:
-            st.success(f"✔️ Question {i+1} : Bonne réponse ✅")
-        else:
-            st.error(f"❌ Question {i+1} : Mauvaise réponse ❌\n👉 **La bonne réponse était** : {quiz['correct_answer']}")
-
-    # ✅ Message de motivation selon le score
-    if st.session_state.score == len(quiz_data):
-        st.success("🏆 Félicitations, vous avez fait un sans-faute ! 🎉")
-    elif st.session_state.score > len(quiz_data) // 2:
-        st.info("💪 Bon travail ! Vous pouvez encore progresser.")
+    # ✅ Définition du message de motivation selon le score
+    if st.session_state.score == total_questions:
+        message = "🏆 Parfait ! Tu es un véritable expert du tri et du recyclage ! 🌱♻️"
+        color = "green"
+    elif st.session_state.score >= total_questions * 0.6:
+        message = "💪 Bien joué !Encore un petit effort pour être imbattable ! 🔥"
+        color = "blue"
     else:
-        st.warning("😕 Il y a encore du travail ! Entraînez-vous davantage.")
+        message = "😕 Oups... Il va falloir réviser un peu ! Essaie encore. 🔄"
+        color = "red"
 
-    # ✅ Bouton pour réinitialiser le quiz
-    if st.button("🔄 Recommencer le quiz"):
-        del st.session_state.quiz_data
-        del st.session_state.answers
-        del st.session_state.validated
-        del st.session_state.show_results
-        st.rerun()
+    # ✅ Affichage du MODAL POPUP 🎉
+    with st.popover("📊 Résultats du quiz", use_container_width=True):
+        st.markdown(f"<h2 style='text-align: center; color: {color};'>Score : {st.session_state.score}/{total_questions} ({score_percentage:.1f}%)</h2>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; font-size: 18px; font-weight: bold;'>{message}</p>", unsafe_allow_html=True)
+
+        # ✅ **Ajout d'une barre de progression du score**
+        st.progress(score_percentage / 100)
+
+        # ✅ Affichage de chaque question avec le bon/mauvais choix
+        for i, quiz in enumerate(st.session_state.quiz_data):
+            question_key = f"question_{i}"
+            selected_answer = st.session_state.answers.get(question_key, "")
+
+            if selected_answer == quiz["correct_answer"]:
+                st.success(f"✔️ **Question {i+1} : Bonne réponse ✅**")
+            else:
+                st.error(f"❌ **Question {i+1} : Mauvaise réponse ❌**\n👉 **La bonne réponse était** : {quiz['correct_answer']}")
+
+        # ✅ **Bouton pour fermer le modal sans recharger la page**
+        if st.button("❌ Fermer les résultats"):
+            st.session_state.show_results = False
+
+        # ✅ **Bouton pour relancer un nouveau quiz**
+        if st.button("🔄 Recommencer le quiz"):
+            del st.session_state.quiz_data
+            del st.session_state.answers
+            del st.session_state.validated
+            del st.session_state.show_results
+            st.rerun()

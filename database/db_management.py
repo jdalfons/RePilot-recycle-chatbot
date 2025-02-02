@@ -1,14 +1,18 @@
 import json
+import time
 import litellm
 import psycopg2
 import os
 import functools
 import streamlit as st
-
+import torch
+from bert_score import score
 from pymongo import MongoClient
 
+from tools.llm_metrics import get_energy_usage, get_price_query
+
 @functools.lru_cache(maxsize=100)  # 🔹 Stocke jusqu'à 100 réponses générées
-def cached_process_quiz_question(question: str, correct_answer: str):
+def cached_process_quiz_question(username: str, question: str, correct_answer: str):
     """
     Vérifie si la question a déjà été traitée récemment.
     Si oui, récupère la réponse stockée sans refaire appel à l'API.
@@ -20,7 +24,7 @@ def cached_process_quiz_question(question: str, correct_answer: str):
     Returns:
         dict: Contenant la question reformulée, la réponse correcte et deux fausses réponses.
     """
-    return SQLDatabase.process_quiz_question(question, correct_answer)
+    return SQLDatabase.process_quiz_question(username,question, correct_answer)
 
 @st.cache_resource
 def get_db_connection():
@@ -185,6 +189,44 @@ class SQLDatabase:
             print(f"❌ Erreur lors de l'ajout de la requête : {e}")
             self.con.rollback()
 
+
+    def log_llm_call(self, username: str, query: str, response: str, generative_model: str, 
+                  energy_usage: float, gwp: float,
+                 completion_tokens: int, prompt_tokens: int, query_price: float, 
+                 execution_time_ms: float):
+        """
+        Enregistre les métriques d'un appel au LLM dans la base de données.
+
+        Args:
+            username (str): Nom de l'utilisateur.
+            query (str): Question envoyée au LLM.
+            response (str): Réponse générée par le LLM.
+            generative_model (str): Modèle utilisé.
+            context (str): Contexte de l'appel ('quiz' ou 'chatbot').
+            energy_usage (float): Consommation d'énergie.
+            gwp (float): Potentiel de réchauffement global.
+            completion_tokens (int): Nombre de tokens générés.
+            prompt_tokens (int): Nombre de tokens envoyés.
+            query_price (float): Coût estimé de l'appel LLM.
+            execution_time_ms (float): Temps total d'exécution de la requête.
+        """
+        insert_query = """
+        INSERT INTO llm_logs_quiz (
+            username, query, response, generative_model , energy_usage, gwp, 
+             completion_tokens, prompt_tokens, query_price, execution_time_ms
+        ) VALUES (%s, %s, %s, %s,  %s, %s, %s, %s, %s, %s);
+        """
+        try:
+            self.cursor.execute(insert_query, (
+                username, query, response, generative_model, energy_usage, gwp, 
+                 completion_tokens, prompt_tokens, query_price, execution_time_ms
+            ))
+            self.con.commit()
+            print(f"✅ Log enregistré pour {username}.")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'enregistrement du log LLM Quiz")
+            self.con.rollback()
+
     # def save_feedback(self, query_id: str, username: str, feedback: str, comment: str = None):
     #     """Enregistre le feedback de l'utilisateur."""
     #     try:
@@ -200,7 +242,7 @@ class SQLDatabase:
     #         self.con.rollback()
 
     @staticmethod
-    def process_quiz_question(question: str, correct_answer: str):
+    def process_quiz_question(username: str,question: str, correct_answer: str):
         """
         Unifie tous les appels au LLM pour :
         - Vérifier la pertinence
@@ -222,6 +264,7 @@ class SQLDatabase:
             - La question reformulée doit inclure une seule ville et pas plus.
         3️⃣ Reformule une **réponse courte et claire** qui garde le sens exact de la réponse correcte détaillée.
             - Pas plus d'une ou deux phrases.
+            - Une réponse de taille proche de deux fausses réponses.
         4️⃣ Fournis **exactement 2 fausses réponses distinctes et réalistes**, mais incorrectes par rapport à la question.
 
         📌 **Réponds uniquement avec un JSON structuré comme suit :**
@@ -233,7 +276,7 @@ class SQLDatabase:
             "fausse_reponse_2": "Réponse incorrecte 2"
         }}
         """
-
+        start_time = time.time()
         try:
             response = litellm.completion(
                 model="mistral/mistral-large-latest",
@@ -252,11 +295,64 @@ class SQLDatabase:
             if json_response["pertinent"] == "NON":
                 return None  # Exclure les questions non pertinentes
 
+            # **Calcul du score BERTScore**
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+            # Score entre question originale et reformulée
+            _, _, F1_question = score(
+                [json_response["question_reformulee"]], [question], lang="fr", device=device
+            )
+
+            # Score entre réponse correcte originale et reformulée
+            _, _, F1_reponse = score(
+                [json_response["reponse_courte"]], [correct_answer], lang="fr", device=device
+            )
+
+            # Score entre fausses réponses et bonne réponse
+            _, _, F1_fake1 = score(
+                [json_response["fausse_reponse_1"]], [json_response["reponse_courte"]], lang="fr", device=device
+            )
+            _, _, F1_fake2 = score(
+                [json_response["fausse_reponse_2"]], [json_response["reponse_courte"]], lang="fr", device=device
+            )
+
+            # Vérifier si la reformulation de la question et de la réponse sont de qualité
+            seuil_pertinence = 0.6  # Seuil pour accepter une reformulation correcte
+
+            if F1_question.item() < seuil_pertinence or F1_reponse.item() < seuil_pertinence:
+                print(f"⚠️ Reformulation jugée trop différente ({F1_question.item():.2f}, {F1_reponse.item():.2f})")
+                return None  # Exclure la question si la reformulation est trop différente
+
+            # Vérifier si les fausses réponses sont trop proches de la bonne réponse
+            if F1_fake1.item() > 0.8 and F1_fake2.item() > 0.8:
+                print(f"⚠️ Mauvaises réponses trop proches ({F1_fake1.item():.2f}, {F1_fake2.item():.2f})")
+                return None  # Exclure cette génération
+            
+            end_time = time.time()
+            latency_ms = (end_time - start_time) * 1000
+            prompt_tokens = int(response["usage"]["prompt_tokens"])
+            completion_tokens = int(response["usage"]["completion_tokens"])
+            query_price = get_price_query("mistral-large-latest", prompt_tokens, completion_tokens)
+            energy_usage, gwp = get_energy_usage(response)            
+            
+            db.log_llm_call(
+            username=username,
+            query=question,
+            response=json.dumps(json_response),
+            generative_model="mistral-large-latest",
+            energy_usage=energy_usage,
+            gwp=gwp,
+            completion_tokens=completion_tokens,
+            prompt_tokens=prompt_tokens,
+            query_price=query_price,
+            execution_time_ms=latency_ms
+            )
+
             return {
-                "question_reformulee": json_response["question_reformulee"],
-                "correct_answer": json_response["reponse_courte"],
-                "fake_answers": [json_response["fausse_reponse_1"], json_response["fausse_reponse_2"]]
-            }
+                    "question_reformulee": json_response["question_reformulee"],
+                    "correct_answer": json_response["reponse_courte"],
+                    "fake_answers": [json_response["fausse_reponse_1"], json_response["fausse_reponse_2"]]
+                }
 
         except Exception as e:
             print(f"❌ Erreur lors du traitement de la question : {e}")
@@ -291,7 +387,7 @@ class SQLDatabase:
                 ORDER BY RANDOM()
                 LIMIT %s;
                 """,
-                (username, limit),
+                (username, limit + 5),
             )
             questions = self.cursor.fetchall()
 
@@ -301,7 +397,7 @@ class SQLDatabase:
             quiz_data = []
             for query, correct_answer in questions:
                 # 🔥 Générer la version courte de la bonne réponse + 2 fausses réponses
-                processed_data = cached_process_quiz_question(query, correct_answer)
+                processed_data = cached_process_quiz_question(username, query, correct_answer)
                 if processed_data:
                             quiz_data.append({
                                 "question": processed_data["question_reformulee"],
