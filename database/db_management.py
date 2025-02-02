@@ -1,5 +1,4 @@
 import json
-import time
 import litellm
 import psycopg2
 import os
@@ -9,20 +8,19 @@ import streamlit as st
 from pymongo import MongoClient
 
 @functools.lru_cache(maxsize=100)  # 🔹 Stocke jusqu'à 100 réponses générées
-def cached_generate_fake_answers(question: str, correct_answer: str):
-        """
-        Vérifie si la question a déjà été traitée récemment.
-        Si oui, récupère la réponse stockée sans refaire appel à l'API.
-        Sinon, génère de nouvelles réponses incorrectes.
-
-        Args:
-            question (str): La question du quiz.
-            correct_answer (str): La réponse correcte.
-
-        Returns:
-            tuple[str, list[str]]: (Bonne réponse courte, [fausse réponse 1, fausse réponse 2])
-        """
-        return SQLDatabase.generate_fake_answers(question, correct_answer)
+def cached_process_quiz_question(question: str, correct_answer: str):
+    """
+    Vérifie si la question a déjà été traitée récemment.
+    Si oui, récupère la réponse stockée sans refaire appel à l'API.
+    
+    Args:
+        question (str): La question du quiz.
+        correct_answer (str): La réponse correcte.
+    
+    Returns:
+        dict: Contenant la question reformulée, la réponse correcte et deux fausses réponses.
+    """
+    return SQLDatabase.process_quiz_question(question, correct_answer)
 
 @st.cache_resource
 def get_db_connection():
@@ -187,101 +185,82 @@ class SQLDatabase:
             print(f"❌ Erreur lors de l'ajout de la requête : {e}")
             self.con.rollback()
 
-    def save_feedback(self, query_id: str, username: str, feedback: str, comment: str = None):
-        """Enregistre le feedback de l'utilisateur."""
-        try:
-            insert_query = """
-            INSERT INTO chatbot_feedback (query_id, username, feedback, comment, timestamp)
-            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-            """
-            self.cursor.execute(insert_query, (query_id, username, feedback, comment))
-            self.con.commit()
-            print(f"✅ Feedback ajouté pour {query_id} : {feedback}")
-        except Exception as e:
-            print(f"❌ Erreur lors de l'ajout du feedback : {e}")
-            self.con.rollback()
-
+    # def save_feedback(self, query_id: str, username: str, feedback: str, comment: str = None):
+    #     """Enregistre le feedback de l'utilisateur."""
+    #     try:
+    #         insert_query = """
+    #         INSERT INTO chatbot_feedback (query_id, username, feedback, comment, timestamp)
+    #         VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+    #         """
+    #         self.cursor.execute(insert_query, (query_id, username, feedback, comment))
+    #         self.con.commit()
+    #         print(f"✅ Feedback ajouté pour {query_id} : {feedback}")
+    #     except Exception as e:
+    #         print(f"❌ Erreur lors de l'ajout du feedback : {e}")
+    #         self.con.rollback()
 
     @staticmethod
-    def generate_fake_answers(question: str, correct_answer: str, max_retries: int = 3) -> tuple[str, list[str]]:
-        """ 
-        Génère une version courte de la bonne réponse et deux fausses réponses via Mistral,
-        en gérant les erreurs de rate limit avec un backoff.
-
-        Args:
-            question (str): La question de base.
-            correct_answer (str): La réponse correcte détaillée.
-            max_retries (int): Nombre maximal de tentatives en cas d'erreur. 
-
-        Returns:
-            tuple[str, list[str]]: (Bonne réponse courte, [fausse réponse 1, fausse réponse 2])
+    def process_quiz_question(question: str, correct_answer: str):
         """
-        attempt = 0
-        while attempt < max_retries:
-            try:
-                # 🔹 Étape 1 : Reformuler la bonne réponse en version courte
-                reformulation_prompt = f"""
-                Voici une réponse détaillée : 
-                "{correct_answer}"
+        Unifie tous les appels au LLM pour :
+        - Vérifier la pertinence
+        - Reformuler la question en précisant la ville
+        - Générer la bonne réponse reformulée
+        - Produire deux fausses réponses réalistes
+        """
+        prompt = f"""
+        Tu es un expert en tri et recyclage. Analyse la question et génère les éléments suivants :
 
-                📌 Reformule-la en **une phrase courte et claire** qui garde son sens.
-                🔹 Pas plus d'une ligne.
-                🔹 Ne change pas le sens.
+        ❓ **Question originale** : "{question}"
+        ✅ **Réponse correcte détaillée** : "{correct_answer}"
 
-                Réponds seulement avec la réponse reformulée.
-                """
-                short_correct_answer = litellm.completion(
-                    model="mistral/mistral-large-latest",
-                    messages=[{"role": "user", "content": reformulation_prompt}],
-                    max_tokens=50,
-                    temperature=1.0,
-                    api_key=os.getenv("MISTRAL_API_KEY"),
-                )["choices"][0]["message"]["content"].strip()
+        📌 **Tâches :**
+        1️⃣ Vérifie si la question est pertinente pour le tri et le recyclage.
+            - Réponds uniquement par "OUI" ou "NON".
+        2️⃣ Si pertinent, reformule la question en précisant la ville mentionnée dans "{correct_answer}".
+            - La reformulation doit être une question claire et concise adaptée à un quiz.
+            - La question reformulée doit inclure une seule ville et pas plus.
+        3️⃣ Reformule une **réponse courte et claire** qui garde le sens exact de la réponse correcte détaillée.
+            - Pas plus d'une ou deux phrases.
+        4️⃣ Fournis **exactement 2 fausses réponses distinctes et réalistes**, mais incorrectes par rapport à la question.
 
-                # 🔹 Étape 2 : Générer les mauvaises réponses
-                prompt_fake_answers = f"""
-                Tu es un générateur de quiz. Donne **exactement** 2 fausses réponses distinctes et réalistes.
+        📌 **Réponds uniquement avec un JSON structuré comme suit :**
+        {{
+            "pertinent": "OUI" ou "NON",
+            "question_reformulee": "Nouvelle question avec ville",
+            "reponse_courte": "Réponse correcte reformulée",
+            "fausse_reponse_1": "Réponse incorrecte 1",
+            "fausse_reponse_2": "Réponse incorrecte 2"
+        }}
+        """
 
-                📌 **Règles à suivre** :
-                - **N'ajoute pas** de phrases d'introduction.
-                - **Tu dois inclure le nom de la ville mentionnée dans la question.**  
-                - **Ne répète pas** la question.
-                - Écris **directement** les 2 mauvaises réponses, **chacune sur une ligne**.
+        try:
+            response = litellm.completion(
+                model="mistral/mistral-large-latest",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=200,
+                temperature=1.0,
+                api_key=os.getenv("MISTRAL_API_KEY"),
+                response_format = {
+                "type": "json_object",
+            }
+            )
 
-                ❓ **Question** : "{question}"
-                ✅ **Bonne réponse** : "{correct_answer}"
+            json_response = json.loads(response["choices"][0]["message"]["content"])
 
-                🔹 **Mauvaises réponses** :
-                1. 
-                2. 
+            # Vérifier si la question est pertinente
+            if json_response["pertinent"] == "NON":
+                return None  # Exclure les questions non pertinentes
 
-                """
-                response_fake = litellm.completion(
-                    model="mistral/mistral-large-latest",
-                    messages=[{"role": "user", "content": prompt_fake_answers}],
-                    max_tokens=100,
-                    temperature=1.2,
-                    api_key=os.getenv("MISTRAL_API_KEY"),
-                )["choices"][0]["message"]["content"].strip().split("\n")
+            return {
+                "question_reformulee": json_response["question_reformulee"],
+                "correct_answer": json_response["reponse_courte"],
+                "fake_answers": [json_response["fausse_reponse_1"], json_response["fausse_reponse_2"]]
+            }
 
-                # ✅ Nettoyer et extraire les réponses
-                fake_answers = [ans.strip("- ") for ans in response_fake if ans.strip()]
-                fake_answers = fake_answers[:2] if len(fake_answers) >= 2 else ["Réponse incorrecte 1", "Réponse incorrecte 2"]
-
-                return short_correct_answer, fake_answers
-
-            except litellm.RateLimitError:
-                attempt += 1
-                wait_time = 2 ** attempt  # ⏳ Exponential Backoff
-                print(f"⚠️ Rate limit atteint. Nouvelle tentative dans {wait_time} secondes...")
-                time.sleep(wait_time)
-
-            except Exception as e:
-                print(f"❌ Erreur lors de la génération des réponses : {e}")
-                return correct_answer, ["Réponse incorrecte 1", "Réponse incorrecte 2"]
-
-        print("❌ Échec après plusieurs tentatives. Retour à une valeur par défaut.")
-        return correct_answer, ["Réponse incorrecte 1", "Réponse incorrecte 2"]
+        except Exception as e:
+            print(f"❌ Erreur lors du traitement de la question : {e}")
+            return None
     
     def get_quiz_questions(self, username: str, limit: int = 5) -> list[dict]:
         """
@@ -322,14 +301,13 @@ class SQLDatabase:
             quiz_data = []
             for query, correct_answer in questions:
                 # 🔥 Générer la version courte de la bonne réponse + 2 fausses réponses
-                short_correct_answer, fake_answers = cached_generate_fake_answers(query, correct_answer) 
-
-
-                quiz_data.append({
-                    "question": query,
-                    "correct_answer": short_correct_answer,
-                    "fake_answers": fake_answers
-                })
+                processed_data = cached_process_quiz_question(query, correct_answer)
+                if processed_data:
+                            quiz_data.append({
+                                "question": processed_data["question_reformulee"],
+                                "correct_answer": processed_data["correct_answer"],
+                                "fake_answers": processed_data["fake_answers"]
+                            })
 
             return quiz_data
 
