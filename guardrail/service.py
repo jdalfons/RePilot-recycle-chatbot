@@ -35,7 +35,7 @@ class Guardrail:
         return pred != 1  # Return True if pred is not 1, otherwise False
 
 
-file_path = "./guardrail/storage/guardrail_logisticregression.pkl"
+file_path = "./guardrail/storage/guardrail.pkl"
 if os.path.exists(file_path):
     with open(file_path, "rb") as f:
         guardrail_model = load(f)
@@ -44,6 +44,5 @@ if os.path.exists(file_path):
 
 else:
     raise RuntimeError(
-        f"Guardrail file not found: {file_path}. Please run script" /
-        "'guardrail_training.py' first or change model for selected model in config file."
+        f"Guardrail file not found: {file_path}. Please run the notebook 'notebook_training_gr.ipynb' first."
     )
