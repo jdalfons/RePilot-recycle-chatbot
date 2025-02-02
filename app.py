@@ -1,101 +1,101 @@
-from dotenv import find_dotenv, load_dotenv
-import numpy
 import streamlit as st
+from pathlib import Path
+from database.db_management import SQLDatabase
+import os
 
-# from rag_simulation.rag import SimpleRAG
+from views import admin_dashboard, login, user_dashboard
 from rag_simulation.rag_augmented import AugmentedRAG
-from rag_simulation.corpus_ingestion import BDDChunks
-from utils import Config
-
-config = Config('config.yml')
-config_chatbot = config.get_role_prompt()
-config_pdf = config.get_pdf_path()
 
 
-load_dotenv(find_dotenv())
+    # """Configure page settings"""
+    # st.set_page_config(
+    #     page_title="RePilot Chatbot",
+    #     page_icon="🤖",
+    #     layout="centered",
+    #     initial_sidebar_state="expanded"
+    # )
 
-st.set_page_config(
-    page_title="ChatBot",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+ 
+class MainApp:
+    def __init__(self):
+        self.db = SQLDatabase(db_name="poc_rag")
+        self.pages = {
+            "login": login,
+            "admin_dashboard": admin_dashboard,
+            "user_dashboard": user_dashboard,
+        }
+        self.init_session_state()
+        
+    def init_session_state(self):
+        """Initialize session state variables"""
+        if "authenticated" not in st.session_state:
+            st.session_state.authenticated = False
+        if "username" not in st.session_state:
+            st.session_state.username = None
+        if "role" not in st.session_state:
+            st.session_state.role = None
+        if "current_page" not in st.session_state:
+            st.session_state.current_page = "login"
 
-
-@st.cache_resource  # cache_ressource permet de ne pas avoir à reload la fonction à chaque fois que l'on fait une action sur l'application
-def instantiate_bdd() -> BDDChunks:
-    bdd = BDDChunks(embedding_model="paraphrase-multilingual-MiniLM-L12-v2")
-    bdd()
-    return bdd
-
-
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    generation_model = st.selectbox(
-        label="Choose your LLM",
-        options=[
-            "ministral-8b-latest",
-            "ministral-3b-latest",
-            "codestral-latest",
-            "mistral-large-latest",
-        ],
-    )
-
-with col2:
-    role_prompt = st.text_area(
-        label=config_chatbot.get('label'),
-        value=config_chatbot.get('value'),
-    )
-
-with st.expander("options avancées"):
-    col_max_tokens, col_temperature, _ = st.columns([0.25, 0.25, 0.5])
-
-    with col_max_tokens:
-        max_tokens = st.select_slider(
-            label="Output max tokens", options=list(range(200, 2000, 50)), value=1000
+    def setup_page(self):
+        """Configure page settings"""
+        st.set_page_config(
+            page_title="RePilot Chatbot",
+            page_icon="🤖",
+            layout="wide",
+            initial_sidebar_state="expanded"
         )
 
-    with col_temperature:
-        range_temperature = [round(x, 2) for x in list(numpy.linspace(0, 1.5, num=51))] 
-        temperature = st.select_slider(label="Temperature", options=range_temperature, value=1.2)
+    def show_navigation(self):
+        """Display navigation sidebar"""
+        with st.sidebar:
+            # pass
+            # st.title("Navigation")
+            
+            if st.session_state.role == "admin":
+                st.session_state.current_page =    "admin_dashboard"
+            else:
+                st.session_state.current_page = "user_dashboard"
+                
+            # page = st.radio("Aller à", pages)
 
-llm = AugmentedRAG(
-    role_prompt=role_prompt,
-    generation_model=generation_model,
-    bdd_chunks=instantiate_bdd(),
-    top_n=2,
-    max_tokens=max_tokens,
-    temperature=temperature,
-)
+            # st.session_state.current_page = page.lower().replace(" ", "_")
+            
+            # if st.button("Déconnexion"):
+            #     st.session_state.authenticated = False
+            #     st.session_state.username = None
+            #     st.session_state.role = None
+            #     st.rerun()
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    def check_auth(self):
+        """Verify authentication status"""
+        if not st.session_state.authenticated:
+            st.session_state.current_page = "login"
+            return False
+        return True
 
-# On affiche les messages de l'utilisateur et de l'IA entre chaque message
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    def show_current_page(self):
+        """Display current page content"""
+        if st.session_state.current_page in self.pages:
+            self.pages[st.session_state.current_page].show()
+        else:
+            st.error(f"Page {st.session_state.current_page} introuvable")
 
-# Si présence d'un input par l'utilisateur,
-if query := st.chat_input(""):
-    # On affiche le message de l'utilisateur
-    with st.chat_message("user"):
-        st.markdown(query)
-    # On ajoute le message de l'utilisateur dans l'historique de la conversation
-    st.session_state.messages.append({"role": "user", "content": query})
-    # On récupère la réponse du chatbot à la question de l'utilisateur
-    response = llm(
-        query=query,
-        history=st.session_state.messages,
-    )
-    # On affiche la réponse du chatbot
-    with st.chat_message("assistant"):
-        st.markdown(response)
-    # On ajoute le message du chatbot dans l'historique de la conversation
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    # On ajoute un bouton pour réinitialiser le chat
-if st.button("Réinitialiser le Chat", type="primary"):
-    st.session_state.messages = []
-    st.rerun()
+    def run(self):
+        """Main application loop"""
+        # self.setup_page()
+        
+        if not self.check_auth():
+            self.pages["login"].show()
+        else:
+            self.show_navigation()
+            self.show_current_page()
 
+def main():
+
+
+    app = MainApp()
+    app.run()
+
+if __name__ == "__main__":
+    main()

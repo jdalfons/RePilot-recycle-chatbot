@@ -1,13 +1,12 @@
-version: '3'
 
 services:
-  mongo:
+  mongollm:
     image: mongo:latest
     container_name: mongollm
     ports:
       - "27017:27017"
 
-  postgres:
+  llmPostgres:
     container_name: llmPostgres
     image: postgres:latest
     ports:
@@ -23,7 +22,7 @@ services:
   client:
     image: llm-app
     build:
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     ports:
       - "8503:8503"
     environment:
