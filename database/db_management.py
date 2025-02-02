@@ -44,7 +44,9 @@ def get_db_connection():
         user=os.getenv('POSTGRES_USER', 'llm'),
         password=os.getenv('POSTGRES_PASSWORD', 'llm'),
         host=os.getenv('POSTGRES_HOST', 'localhost'),
+        # port=os.getenv('POSTGRES_PORT', 32003)
         port=os.getenv('POSTGRES_PORT', 25130)
+
     )
 
 
