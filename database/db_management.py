@@ -101,10 +101,16 @@ class MongoDB:
         self.port = int(port)
         self.uri = uri
         # If collection is empty, initialize it
-        if self.host is not None:
-            self.client = MongoClient(self.host, self.port)
-        elif self.uri is not None:
+        if self.uri is not None:
             self.client = MongoClient(self.uri)
+            try:
+                # Check if the connection is successful
+                self.client.admin.command('ping')
+                print("✅ Connected to MongoDB successfully.")
+            except ConnectionFailure:
+                print("❌ MongoDB connection failed.")
+        elif self.host is not None:
+            self.client = MongoClient(self.host, self.port)
         else:
             raise ValueError("Please provide either a host address or a connection URI")
         self.db = None
