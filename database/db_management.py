@@ -21,8 +21,11 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from pymongo.collection import Collection
 from typing import List, Dict, Any, Optional
 
-@functools.lru_cache(maxsize=20)  
-def cached_process_quiz_question(username: str, question: str, correct_answer: str) -> Optional[Dict[str, str]]:
+
+@functools.lru_cache(maxsize=20)
+def cached_process_quiz_question(
+    username: str, question: str, correct_answer: str
+) -> Optional[Dict[str, str]]:
     """
     Checks if the question has been processed recently.
     If yes, retrieves the cached response instead of making a new API call.
@@ -40,6 +43,7 @@ def cached_process_quiz_question(username: str, question: str, correct_answer: s
         Returns None if the question is deemed irrelevant.
     """
     return SQLDatabase.process_quiz_question(username, question, correct_answer)
+
 
 @st.cache_resource(ttl=600)  # Caches the connection for 10 minutes
 def get_db_connection() -> Optional[psycopg2.extensions.connection]:
@@ -60,7 +64,7 @@ def get_db_connection() -> Optional[psycopg2.extensions.connection]:
     except psycopg2.Error as e:
         st.error(f"❌ Database connection failed: {e}")
         return None  # Avoid breaking execution
-    
+
 
 class MongoDB:
     """
@@ -121,7 +125,9 @@ class MongoDB:
             print(f"✅ Created new collection: {collection_name}")
         return db[collection_name]
 
-    def insert_item(self, db_name: str, collection_name: str, item: Dict[str, Any]) -> None:
+    def insert_item(
+        self, db_name: str, collection_name: str, item: Dict[str, Any]
+    ) -> None:
         """
         Inserts an item into the specified MongoDB collection.
 
@@ -151,7 +157,9 @@ class MongoDB:
         except OperationFailure as e:
             print(f"❌ Error inserting/updating item in MongoDB: {e}")
 
-    def query_collection(self, db_name: str, collection_name: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def query_collection(
+        self, db_name: str, collection_name: str, query: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
         Queries the specified collection and returns the results as a list.
 
@@ -201,9 +209,18 @@ class MongoDB:
                         continue
 
                     for item in data:
-                        mandatory_fields = ["id", "ville", "type_dechet", "produits", "action", "instructions"]
+                        mandatory_fields = [
+                            "id",
+                            "ville",
+                            "type_dechet",
+                            "produits",
+                            "action",
+                            "instructions",
+                        ]
                         if not all(field in item for field in mandatory_fields):
-                            raise ValueError(f"❌ Missing required fields in item: {item}")
+                            raise ValueError(
+                                f"❌ Missing required fields in item: {item}"
+                            )
 
                         self.insert_item(self.db_name, self.collection_name, item)
 
@@ -211,6 +228,8 @@ class MongoDB:
 
             except (json.JSONDecodeError, ValueError) as e:
                 print(f"❌ Error loading JSON data from {file_name}: {e}")
+
+
 class SQLDatabase:
     """
     Handles database interactions for chatbot history, quizzes, and LLM logs.
@@ -232,7 +251,9 @@ class SQLDatabase:
     def initialize_database(self):
         """Vérifie et initialise les tables si elles n'existent pas."""
         try:
-            self.cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+            self.cursor.execute(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
+            )
             existing_tables = {table[0] for table in self.cursor.fetchall()}
             required_tables = {
                 "chatbot_history",
@@ -323,8 +344,7 @@ class SQLDatabase:
         except Exception as e:
             print(f"❌ Error adding query: {e}")
             self.con.rollback()
-    
-    
+
     def log_llm_call(
         self,
         username: str,
@@ -359,9 +379,53 @@ class SQLDatabase:
             completion_tokens, prompt_tokens, query_price, execution_time_ms
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
+        # print(
+        #     "username",
+        #     username,
+        #     "query",
+        #     query,
+        #     "response",
+        #     response,
+        #     "generative_model",
+        #     generative_model,
+        #     "energy_usage",
+        #     energy_usage,
+        #     "gwp",
+        #     gwp,
+        #     "completion_tokens",
+        #     completion_tokens,
+        #     "prompt_tokens",
+        #     prompt_tokens,
+        #     "query_price",
+        #     query_price,
+        #     "execution_time_ms",
+        #     execution_time_ms,
+        # )
+        try:
+            self.cursor.execute(
+                insert_query,
+                (
+                    username,
+                    query,
+                    response,
+                    generative_model,
+                    energy_usage,
+                    gwp,
+                    completion_tokens,
+                    prompt_tokens,
+                    query_price,
+                    execution_time_ms,
+                ),
+            )
+            self.con.commit()
+            print(f"✅ LLM log recorded for {username}.")
+        except Exception as e:
+            print("❌ Error logging LLM Quiz Call")
+            self.con.rollback()
+
     def save_feedback(
-            self, query_id: str, username: str, feedback: str, comment: str = None
-        ) -> bool:
+        self, query_id: str, username: str, feedback: str, comment: str = None
+    ) -> bool:
         """Enregistre le feedback de l'utilisateur."""
         try:
             self.cursor.execute(
@@ -388,7 +452,9 @@ class SQLDatabase:
             return False
 
     @staticmethod
-    def process_quiz_question(username: str, question: str, correct_answer: str) -> Optional[Dict[str, Any]]:
+    def process_quiz_question(
+        username: str, question: str, correct_answer: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Processes a quiz question by:
         - Verifying its relevance to recycling and waste management.
@@ -457,26 +523,41 @@ class SQLDatabase:
 
             # Score between original and reformulated question
             _, _, F1_question = score(
-                [json_response["question_reformulee"]], [question], lang="fr", device=device
+                [json_response["question_reformulee"]],
+                [question],
+                lang="fr",
+                device=device,
             )
 
             # Score between original and reformulated correct answer
             _, _, F1_reponse = score(
-                [json_response["reponse_courte"]], [correct_answer], lang="fr", device=device
+                [json_response["reponse_courte"]],
+                [correct_answer],
+                lang="fr",
+                device=device,
             )
 
             # Score between fake answers and correct answer
             _, _, F1_fake1 = score(
-                [json_response["fausse_reponse_1"]], [json_response["reponse_courte"]], lang="fr", device=device
+                [json_response["fausse_reponse_1"]],
+                [json_response["reponse_courte"]],
+                lang="fr",
+                device=device,
             )
             _, _, F1_fake2 = score(
-                [json_response["fausse_reponse_2"]], [json_response["reponse_courte"]], lang="fr", device=device
+                [json_response["fausse_reponse_2"]],
+                [json_response["reponse_courte"]],
+                lang="fr",
+                device=device,
             )
 
             # Filtering based on BERTScore
             relevance_threshold = 0.6  # Threshold for accepting a valid reformulation
 
-            if F1_question.item() < relevance_threshold or F1_reponse.item() < relevance_threshold:
+            if (
+                F1_question.item() < relevance_threshold
+                or F1_reponse.item() < relevance_threshold
+            ):
                 print(
                     f"⚠️ Reformulation rejected (F1 scores: {F1_question.item():.2f}, {F1_reponse.item():.2f})"
                 )
@@ -492,7 +573,9 @@ class SQLDatabase:
             latency_ms = (end_time - start_time) * 1000
             prompt_tokens = int(response["usage"]["prompt_tokens"])
             completion_tokens = int(response["usage"]["completion_tokens"])
-            query_price = get_price_query("mistral-large-latest", prompt_tokens, completion_tokens)
+            query_price = get_price_query(
+                "mistral-large-latest", prompt_tokens, completion_tokens
+            )
             energy_usage, gwp = get_energy_usage(response)
 
             # ✅ Log LLM Call
@@ -512,7 +595,10 @@ class SQLDatabase:
             return {
                 "question_reformulee": json_response["question_reformulee"],
                 "correct_answer": json_response["reponse_courte"],
-                "fake_answers": [json_response["fausse_reponse_1"], json_response["fausse_reponse_2"]],
+                "fake_answers": [
+                    json_response["fausse_reponse_1"],
+                    json_response["fausse_reponse_2"],
+                ],
             }
 
         except Exception as e:
@@ -535,7 +621,9 @@ class SQLDatabase:
         """
         try:
             # ✅ Check if the user exists
-            self.cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s;", (username,))
+            self.cursor.execute(
+                "SELECT COUNT(*) FROM users WHERE username = %s;", (username,)
+            )
             user_exists = self.cursor.fetchone()[0]
 
             if user_exists == 0:
@@ -561,7 +649,9 @@ class SQLDatabase:
             quiz_data = []
             for query, correct_answer in questions:
                 #  Process the quiz question through cached LLM call
-                processed_data = cached_process_quiz_question(username, query, correct_answer)
+                processed_data = cached_process_quiz_question(
+                    username, query, correct_answer
+                )
                 if processed_data:
                     quiz_data.append(
                         {
