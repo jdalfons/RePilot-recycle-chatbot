@@ -51,64 +51,35 @@ RePilot est un chatbot intelligent spécialisé dans le tri des déchets. Utilis
 
 ## Architecture du projet
 
-```
-RePilot-recycle-chatbot/
-├── assets/
-├── chromadb/
-├── data/
-│   ├── grand_lyon_processed.json
-│   ├── Paris_tri.json
-├── database/
-│   ├── __init__.py
-│   ├── db_management.py
-├── guardrail/
-│   ├── storage/
-│   │   ├── guardrail.pkl
-│   ├── service.py
-├── plots/
-│   ├── clusters.py
-│   ├── plots.py
-├── rag_simulation/
-│   ├── corpus_ingestion.py
-│   ├── embeddings.py
-│   ├── rag_augmented.py
-│   ├── schema.py
-│   ├── wrapper.py
-├── sql/
-│   ├── init.sql
-├── views/
-│   ├── admin_dashboard.py
-│   ├── lm.py
-│   ├── login.py
-│   ├── user_dashboard.py
-├── .dockerignore
-├── .env
-├── .gitignore
-├── app.py
-├── config.yml
-├── docker-compose.yml
-├── dockerfile
-├── LICENSE
-├── notebook_training_gr.ipynb
-├── notebook_training_gr.py
-├── README.md
-├── requirements.txt
-├── temp.ipynb
-├── temp.txt
-├── users.json
-├── utils.py
-```
+![Architecture du projet](assets/LLM_architecture.png)
 
 ## Installation
+Vous avez deux façons d'initialiser localement le projet
 
-### Prérequis
+### DOCKER
 
-- Python 3.9+
+#### Prérequis
+
+- Docker
+- Ficher .env 
+```sh
+MISTRAL_API_KEY=${MISTRAL_API_KEY}
+HF_TOKEN=${HF_TOKEN}
+```
+
+```sh
+docker compose up --build -d
+```
+### Local
+
+#### Prérequis
+
+- Python 3.11
 - PostgreSQL
 - Compte Mistral AI
 - Un fichier `.env` contenant vos clés API (par exemple, `MISTRAL_API_KEY`)
 
-### Étapes d'installation
+#### Étapes d'installation
 
 ```bash
 # Cloner le dépôt
@@ -123,13 +94,13 @@ source venv/bin/activate  # Sur macOS/Linux
 pip install -r requirements.txt
 ```
 
-### Configuration de la base de données
+#### Configuration de la base de données
 
 ```bash
 psql -U postgres -f database/init.sql
 ```
 
-### Configuration des variables d'environnement
+#### Configuration des variables d'environnement
 
 Créer un fichier `.env` et y ajouter les informations suivantes :
 
@@ -142,13 +113,13 @@ POSTGRES_PASSWORD=your_password
 MISTRAL_API_KEY=your_api_key
 ```
 
-## Utilisation
+### Utilisation
 
 ```bash
 streamlit run app.py
 ```
 
-### Accès
+#### Accès
 
 - **Interface utilisateur**  :
   - **Login** : `user`
