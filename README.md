@@ -38,7 +38,7 @@ RePilot est un chatbot intelligent spécialisé dans le tri des déchets. Utilis
   - Analyse de la consommation d'énergie
   - Calcul des coûts par requête
 
-  - 🗄️ **Choix du Data Warehouse**
+- 🗄️ **Choix du Data Warehouse**
   - **PostgreSQL** : Base de données relationnelle puissante pour le scaling
   - **MongoDB** : Base NoSQL adaptée aux instructions de recyclage (clé:valeur) pour un apprentissage efficace du RAG
   - **ChromaDB** : Stockage des vecteurs (embeddings) en chunks avec SentenceTransformer

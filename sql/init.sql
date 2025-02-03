@@ -1,4 +1,3 @@
- 
 -- Supprimer les tables existantes si elles existent
 DROP TABLE IF EXISTS quiz_responses;
 DROP TABLE IF EXISTS quiz_questions;
@@ -111,12 +110,6 @@ VALUES ('admin2', md5('admin123'), 'admin');
 -- Default Regular User
 INSERT INTO users (username, password_hash, role) 
 VALUES ('user', md5('user123'), 'user');
-
-INSERT INTO chat_sessions (chat_title, username)
-VALUES ('Default Chat', 'user');
-
-INSERT INTO chat_sessions (chat_title, username)
-VALUES ('Default Chat 2', 'user');
 
 -- Default Chat Sessions
 INSERT INTO chat_sessions (chat_title, username) VALUES 
