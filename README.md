@@ -54,6 +54,7 @@ RePilot est un chatbot intelligent spécialisé dans le tri des déchets. Utilis
 ![Architecture du projet](assets/LLM_architecture.png)
 
 ## Installation
+Vous avez deux façons d'initialiser localement le projet
 
 ### DOCKER
 

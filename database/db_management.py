@@ -108,6 +108,7 @@ class MongoDB:
         else:
             raise ValueError("Please provide either a host address or a connection URI")
         self.db = None
+        self.setup_database()
 
     def create_collection(self, db_name: str, collection_name: str) -> Collection:
         """
