@@ -75,6 +75,7 @@ class MongoDB:
         data_dir: str = "data",
         host: str = "localhost",
         port: int = 27017,
+        uri: Optional[str] = None,
     ):
         """
         Initializes the MongoDB client.
@@ -85,24 +86,24 @@ class MongoDB:
             data_dir (str, optional): Path to the directory containing JSON data. Defaults to "data".
             host (str, optional): MongoDB host. Defaults to "localhost".
             port (int, optional): MongoDB port. Defaults to 27017.
+            uri (str): MongoDB connection URI
         """
-        try:
-            self.client = MongoClient(host, port)
-            self.db_name = db_name
-            self.collection_name = collection_name
-            self.data_dir = data_dir
-            self.db = self.client[db_name]
-            self.collection = self.db[collection_name]
 
-            # If collection is empty, initialize it
-            if self.collection.estimated_document_count() == 0:
-                print(f"⚠️ Collection '{collection_name}' is empty. Initializing with data...")
-                self.setup_database()
-            else:
-                print(f"✅ Connected to MongoDB: {db_name}.{collection_name}")
-
-        except ConnectionFailure as e:
-            print(f"❌ MongoDB connection error: {e}")
+        self.db_name = db_name
+        self.collection = None
+        self.collection_name = collection_name
+        self.data_dir = data_dir
+        self.host = host
+        self.port = int(port)
+        self.uri = uri
+        # If collection is empty, initialize it
+        if self.host is not None:
+            self.client = MongoClient(self.host, self.port)
+        elif self.uri is not None:
+            self.client = MongoClient(self.uri)
+        else:
+            raise ValueError("Please provide either a host address or a connection URI")
+        self.db = None
 
     def create_collection(self, db_name: str, collection_name: str) -> Collection:
         """
