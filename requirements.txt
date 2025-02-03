@@ -281,4 +281,3 @@ yappi==1.6.10
 yaql==3.0.0
 yarl==1.18.3
 zipp==3.21.0
-pysqlite3-binary
