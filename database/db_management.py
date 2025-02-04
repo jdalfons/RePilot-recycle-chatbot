@@ -1451,7 +1451,7 @@ class SQLDatabase:
             logger.error(f"Erreur lors de la récupération du taux de réussite : {e}")
             return 0
 
-    def get_top_users_by_success(self, limit=5):
+    def get_top_users_by_success(self, limit=5) -> list:
         """Retourne les utilisateurs avec le meilleur taux de réussite"""
         try:
             self.cursor.execute(
@@ -1483,6 +1483,9 @@ class SQLDatabase:
                 (question, user_answer, correct_answer, is_correct, answered_at)
                 Empty list if no responses found or error occurs
         """
+        # quiz_responses      response_id quiz_id username, user_answer, is_correct, answered_at
+        # quiz_questions      quiz_id username question correct_answer created_at
+
         try:
             self.cursor.execute(
                 """

@@ -37,7 +37,8 @@ class AdminDashboard:
 
     def show(self) -> None:
         try:
-            st.markdown("""
+            st.markdown(
+                """
             <style>
                 .stPlotlyChart {
                     width: 80%;
@@ -51,7 +52,9 @@ class AdminDashboard:
                     width: 80%;
                 }
             </style>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
             self.show_sidebar()
 
             pages = {
@@ -96,7 +99,7 @@ class AdminDashboard:
                 ):
                     st.session_state.admin_page = page
                     st.rerun()
-    
+
     def logout(self) -> None:
         st.session_state.authenticated = False
         st.session_state.username = None
@@ -152,13 +155,13 @@ class AdminDashboard:
 
     def show_users(self) -> None:
         st.title("👥 User Management")
- 
+
         users = self.db.get_usernames()
 
         # Show the list of users
         overview_tab, user_details_tab = st.tabs(["📊 Overview", "👤 User Details"])
-    
-        with overview_tab:        
+
+        with overview_tab:
             st.subheader("Vue des Utilisateurs qui consomment le plus")
 
             # Plot Users that consume the most
@@ -210,7 +213,9 @@ class AdminDashboard:
 
                 # Update the chart with the corresponding units and style
                 fig.update_traces(
-                    texttemplate=texttemplate, textposition="outside", marker_line_width=1.5
+                    texttemplate=texttemplate,
+                    textposition="outside",
+                    marker_line_width=1.5,
                 )
                 fig.update_layout(
                     yaxis_title=yaxis_title,
@@ -221,7 +226,8 @@ class AdminDashboard:
 
                 # Show the data frame with formatted values
                 st.dataframe(
-                    df.style.format({metric: f"{{:.2f}} {unit}"}), use_container_width=True
+                    df.style.format({metric: f"{{:.2f}} {unit}"}),
+                    use_container_width=True,
                 )
 
                 # Display the plot
@@ -244,6 +250,7 @@ class AdminDashboard:
             user_stats = self.db.get_user_statistics(selected_user)
             user_feedback = self.db.get_user_feedback(selected_user)
             user_quiz = self.db.get_user_quiz_responses(selected_user)
+            print("reponses quizz", user_quiz)
 
             # user's general info
             st.subheader("📋 Informations de base")
@@ -297,10 +304,6 @@ class AdminDashboard:
                 self.delete_user_and_data(selected_user)
                 st.success(f"Utilisateur {selected_user} supprimé avec succès.")
 
-    
-    
-    
-     
     # Fonctions utils  02/02
     # Overview Page ============================================
     def get_usage_statistics(self) -> Dict[str, Any]:

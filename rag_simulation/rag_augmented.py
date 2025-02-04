@@ -14,7 +14,8 @@ from rag_simulation.schema import Query
 from guardrail.service import guardrail_instance
 from rag_simulation.corpus_ingestion import BDDChunks
 from rag_simulation.wrapper import track_latency
-from datetime import datetime 
+from datetime import datetime
+
 load_dotenv(find_dotenv())
 
 
@@ -57,11 +58,11 @@ class AugmentedRAG:
         self.db = db
         self.selected_city = selected_city
         self.embedding_name = self.bdd.embedding_name
-      
+
         # Vérify if the instance is initialized
         if not self.bdd:
             raise ValueError("❌ L'instance BDDChunks n'est pas initialisée !")
-    
+
     def _reformulation_query(self, query_a_corriger: str) -> str:
         """
         Reformulates the user's query to correct spelling and syntax errors.
@@ -78,20 +79,21 @@ class AugmentedRAG:
         Voici la requête de l'utilisateur : 
         "{query_a_corriger}"
 
-        Reforume la question de l'utilisateur en corrigeant l'ortographe et la syntaxe de la question
+        Ton rôle est de reforumer la requête de l'utilisateur en corrigeant l'ortographe et la syntaxe de la question
 
         Réponds seulement avec la réponse reformulée.
         """
 
         # Update the query with the reformulation
-        # print("Query avant transformation: ", query) # ex : Query avant transformation:  je veu résiklé u karton
-
+        print(
+            "Query avant transformation: ", query_a_corriger
+        )  # ex : Query avant transformation:  je veu résiklé u karton
 
         # Calculate latency in milliseconds -> Won't use wrapper since we want to compute the monitoring and the string reformulation in the same fonction
         start_time = datetime.now()
 
         reformulation_response = litellm.completion(
-            model="mistral/ministral-3b-latest", # Choix d'un modèle petit 
+            model="mistral/ministral-3b-latest",  # Choix d'un modèle petit
             messages=[{"role": "user", "content": reformulation_prompt}],
             max_tokens=50,
             temperature=1.0,
@@ -101,14 +103,22 @@ class AugmentedRAG:
         end_time = datetime.now()
         latency_ms = (end_time - start_time).total_seconds() * 1000  # ms
 
-        query_reformuler = reformulation_response["choices"][0]["message"]["content"].strip()
-        # print("Query après transformation: ", query) # ex : Query après transformation:  "Je veux recycler du carton."
+        query_reformuler = reformulation_response["choices"][0]["message"][
+            "content"
+        ].strip()
 
+        print(
+            "Query après transformation: ", query_reformuler
+        )  # ex : Query après transformation:  "Je veux recycler du carton."
 
         # Computation of the monitoring metrics for the reformulation
 
-        input_tokens = int(reformulation_response["usage"]["prompt_tokens"])  # Entry tokens
-        output_tokens = int(reformulation_response["usage"]["completion_tokens"])  # Output tokens
+        input_tokens = int(
+            reformulation_response["usage"]["prompt_tokens"]
+        )  # Entry tokens
+        output_tokens = int(
+            reformulation_response["usage"]["completion_tokens"]
+        )  # Output tokens
 
         # Cost calculation
         dollar_cost = self._get_price_query(
@@ -135,12 +145,12 @@ class AugmentedRAG:
 
         ######################## DISCUSS IF WE ADD THOSES CONSUMMATIONS TO THE RAG MODEL OR PUT IT ASIDE ############################
 
-        if self.analyse_safety(query=query_reformuler): # call analyze_query(guarrail) for guardrail analysis
+        if self.analyse_safety(
+            query=query_reformuler
+        ):  # call analyze_query(guarrail) for guardrail analysis
             return query_reformuler
         else:
-            return "❌ La requête de l'utilisateur reformulé n'est pas sûre." 
-
-    
+            return "❌ La requête de l'utilisateur reformulé n'est pas sûre."
 
     def build_prompt(
         self, context: list[str], history: str, query: str
@@ -197,8 +207,14 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {"role": "assistant", "content": history_prompt}, # Shoud be tagged as assistant ? (antecedents responses)
-            {"role": "assistant", "content": context_prompt}, # Shoud be tagged as assistant ? (maintaint context)
+            {
+                "role": "assistant",
+                "content": history_prompt,
+            },  # Shoud be tagged as assistant ? (antecedents responses)
+            {
+                "role": "assistant",
+                "content": context_prompt,
+            },  # Shoud be tagged as assistant ? (maintaint context)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -362,9 +378,11 @@ class AugmentedRAG:
             str: Réponse générée.
         """
         try:
-            results = self.bdd.chroma_db.query(query_texts=[query + f" ville: {self.selected_city}"],
-            n_results=self.top_n,) # n_results to limit the number of document retrieved for rag
-      
+            results = self.bdd.chroma_db.query(
+                query_texts=[query + f" ville: {self.selected_city}"],
+                n_results=self.top_n,
+            )  # n_results to limit the number of document retrieved for rag
+
             if not results["documents"]:
                 return (
                     "❌ Aucun document pertinent trouvé pour répondre à votre question."
@@ -380,7 +398,7 @@ class AugmentedRAG:
             query_obj = self.call_model(
                 query=query, context=chunks_list, prompt_dict=prompt_rag
             )
-            
+
             # ✅ Enregistrement dans la base
             self.db.add_query(
                 query_id=query_obj.query_id,
@@ -397,7 +415,6 @@ class AugmentedRAG:
                 energy_usage=query_obj.energy_usage,
                 gwp=query_obj.gwp,
                 username=username1,
-
             )
 
             return self.get_response(response=query_obj)
