@@ -250,7 +250,6 @@ class AdminDashboard:
             user_stats = self.db.get_user_statistics(selected_user)
             user_feedback = self.db.get_user_feedback(selected_user)
             user_quiz = self.db.get_user_quiz_responses(selected_user)
-            print("reponses quizz", user_quiz)
 
             # user's general info
             st.subheader("📋 Informations de base")
