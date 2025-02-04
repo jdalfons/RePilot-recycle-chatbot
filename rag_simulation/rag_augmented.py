@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 import uuid
-
+import os
 from ecologits import EcoLogits
 
 from dotenv import load_dotenv, find_dotenv
@@ -14,7 +14,7 @@ from rag_simulation.schema import Query
 from guardrail.service import guardrail_instance
 from rag_simulation.corpus_ingestion import BDDChunks
 from rag_simulation.wrapper import track_latency
-
+from datetime import datetime 
 load_dotenv(find_dotenv())
 
 
@@ -57,10 +57,90 @@ class AugmentedRAG:
         self.db = db
         self.selected_city = selected_city
         self.embedding_name = self.bdd.embedding_name
-
-        # Vérification de l'initialisation correcte
+      
+        # Vérify if the instance is initialized
         if not self.bdd:
             raise ValueError("❌ L'instance BDDChunks n'est pas initialisée !")
+    
+    def _reformulation_query(self, query_a_corriger: str) -> str:
+        """
+        Reformulates the user's query to correct spelling and syntax errors.
+
+        Args:
+            query (str): The user's query or question.
+
+        Returns:
+            str: The reformulated query with corrected spelling and syntax.
+        """
+        # Evaluation ecologits, latency
+        # Reformulation of the user's query(correct spelling and syntax errors)
+        reformulation_prompt = f"""
+        Voici la requête de l'utilisateur : 
+        "{query_a_corriger}"
+
+        Reforume la question de l'utilisateur en corrigeant l'ortographe et la syntaxe de la question
+
+        Réponds seulement avec la réponse reformulée.
+        """
+
+        # Update the query with the reformulation
+        # print("Query avant transformation: ", query) # ex : Query avant transformation:  je veu résiklé u karton
+
+
+        # Calculate latency in milliseconds -> Won't use wrapper since we want to compute the monitoring and the string reformulation in the same fonction
+        start_time = datetime.now()
+
+        reformulation_response = litellm.completion(
+            model="mistral/ministral-3b-latest", # Choix d'un modèle petit 
+            messages=[{"role": "user", "content": reformulation_prompt}],
+            max_tokens=50,
+            temperature=1.0,
+            api_key=os.getenv("MISTRAL_API_KEY"),
+        )
+
+        end_time = datetime.now()
+        latency_ms = (end_time - start_time).total_seconds() * 1000  # ms
+
+        query_reformuler = reformulation_response["choices"][0]["message"]["content"].strip()
+        # print("Query après transformation: ", query) # ex : Query après transformation:  "Je veux recycler du carton."
+
+
+        # Computation of the monitoring metrics for the reformulation
+
+        input_tokens = int(reformulation_response["usage"]["prompt_tokens"])  # Entry tokens
+        output_tokens = int(reformulation_response["usage"]["completion_tokens"])  # Output tokens
+
+        # Cost calculation
+        dollar_cost = self._get_price_query(
+            model="ministral-3b-latest",  # Small model
+            input_token=input_tokens,
+            output_token=output_tokens,
+        )
+
+        # Extract energy usage and global warming potential (GWP)
+        # EcoLogits.init(providers="litellm", electricity_mix_zone="FRA") # already initialized
+
+        energy_usage, gwp = self._get_energy_usage(response=reformulation_response)
+
+        # Monitoring data
+        monitoring_data = {
+            "input_tokens_reformulation": input_tokens,
+            "output_tokens_reformulation": output_tokens,
+            "dollar_cost_reformulation": dollar_cost,
+            "energy_usage_reformulation": energy_usage,
+            "gwp_reformulation": gwp,
+            "latency_reformulation": latency_ms,
+        }
+        print("Monitoring data model lite reformulation: ", monitoring_data)
+
+        ######################## DISCUSS IF WE ADD THOSES CONSUMMATIONS TO THE RAG MODEL OR PUT IT ASIDE ############################
+
+        if self.analyse_safety(query=query_reformuler): # call analyze_query(guarrail) for guardrail analysis
+            return query_reformuler
+        else:
+            return "❌ La requête de l'utilisateur reformulé n'est pas sûre." 
+
+    
 
     def build_prompt(
         self, context: list[str], history: str, query: str
@@ -76,8 +156,10 @@ class AugmentedRAG:
         Returns:
             list[dict[str, str]]: The RAG prompt in the OpenAI format
         """
+        # Reformulation of the user's query, correct spelling and syntax errors
+        query = self._reformulation_query(query_a_corriger=query)
 
-        # Ajout de contexte pour les villes en fonction de la ville choisi par l'utilisateur
+        # Add General context based on the user's chosen city
         contexte_couleur_bac_ville = ""
         if self.selected_city == "Grand Lyon Métropole":
             contexte_couleur_bac_ville = """
@@ -115,14 +197,8 @@ class AugmentedRAG:
         """
         return [
             {"role": "system", "content": system_prompt},
-            {
-                "role": "assistant",
-                "content": history_prompt,
-            },  # devrait plutôt être assistant ? (réponses antérieurs du model)
-            {
-                "role": "assistant",
-                "content": context_prompt,
-            },  # devrait plutôt être assistant ? (maintenir le contexte)
+            {"role": "assistant", "content": history_prompt}, # Shoud be tagged as assistant ? (antecedents responses)
+            {"role": "assistant", "content": context_prompt}, # Shoud be tagged as assistant ? (maintaint context)
             {"role": "user", "content": query_prompt},
         ]
 
@@ -286,11 +362,9 @@ class AugmentedRAG:
             str: Réponse générée.
         """
         try:
-            results = self.bdd.chroma_db.query(
-                query_texts=[query + f" ville: {self.selected_city}"],
-                n_results=self.top_n,
-            )  # Mettre n_results limite le rag à 2 résultats pour l'instant)
-
+            results = self.bdd.chroma_db.query(query_texts=[query + f" ville: {self.selected_city}"],
+            n_results=self.top_n,) # n_results to limit the number of document retrieved for rag
+      
             if not results["documents"]:
                 return (
                     "❌ Aucun document pertinent trouvé pour répondre à votre question."
@@ -302,10 +376,11 @@ class AugmentedRAG:
                 context=chunks_list, history=str(history), query=query
             )
 
+            # ✅ Save to DB
             query_obj = self.call_model(
                 query=query, context=chunks_list, prompt_dict=prompt_rag
             )
-
+            
             # ✅ Enregistrement dans la base
             self.db.add_query(
                 query_id=query_obj.query_id,
