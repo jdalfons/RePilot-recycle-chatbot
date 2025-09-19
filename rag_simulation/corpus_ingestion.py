@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 
 from utils import JSONProcessor
 from database.db_management import MongoDB
-from sentence_transformers import SentenceTransformer
 from chromadb.config import Settings
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+
+from rag_simulation.embeddings import get_embedding_backend
 # Charger les variables d'environnement
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI", None)
@@ -37,17 +37,14 @@ class BDDChunks:
             embedding_model (str): Modèle utilisé pour générer les embeddings.
         """
         self.client = chromadb.PersistentClient(
-            path="./chromadb",
-            settings=Settings(anonymized_telemetry=False)
+            path="./chromadb", settings=Settings(anonymized_telemetry=False)
         )
-        self.embedding_model = SentenceTransformer(embedding_model)
-        self.embedding_name = embedding_model
+        self.embedding_model = get_embedding_backend(embedding_model)
+        self.embedding_name = self.embedding_model.embedding_name
         self.chroma_db = None  # La collection sera créée dynamiquement
         self.collection_name = "dechets_collection"
         self.path = "dechets"
-        self.embeddings = SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model
-        )
+        self.embeddings = self.embedding_model
 
     def reset_chroma_collection(self) -> None:
         """

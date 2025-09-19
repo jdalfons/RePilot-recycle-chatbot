@@ -1,9 +1,12 @@
+import logging
 import os
 from pickle import load
 
 import streamlit as st
 
-from rag_simulation.embeddings import get_embedding
+from rag_simulation.embeddings import get_embedding, get_embedding_backend
+
+EMBEDDING_BACKEND = get_embedding_backend()
 
 
 class Guardrail:
@@ -14,11 +17,23 @@ class Guardrail:
         guardrail (Any): The guardrail model used for predictions.
     """
 
+    KEYWORD_DENYLIST = {
+        "attack",
+        "bomb",
+        "exploit",
+        "fraud",
+        "hack",
+        "kill",
+        "terror",
+        "weapon",
+    }
+
     def __init__(self):
         """
         Initializes the Guardrail class with a guardrail model instance.
         """
         self.guardrail = guardrail_model
+        self._fallback_logged = False
 
     def analyze_query(self, query: str) -> bool:
         """
@@ -30,9 +45,31 @@ class Guardrail:
         Returns:
             bool: Returns `False` if the query is flagged, `True` otherwise.
         """
-        embed_query = get_embedding(documents=[query])
-        pred = self.guardrail.predict(embed_query.reshape(1, -1)).item()
-        return pred != 1  # Return True if pred is not 1, otherwise False
+        if self.guardrail is not None and EMBEDDING_BACKEND.uses_sentence_transformer():
+            embed_query = get_embedding(documents=[query])
+            pred = self.guardrail.predict(embed_query.reshape(1, -1)).item()
+            return pred != 1  # Return True if pred is not 1, otherwise False
+
+        if not self._fallback_logged:
+            logging.info(
+                "Guardrail model running in keyword fallback mode because the sentence-transformer embeddings are unavailable."
+            )
+            self._fallback_logged = True
+        return self._keyword_based_check(query)
+
+    def _keyword_based_check(self, query: str) -> bool:
+        """Simple keyword-based guardrail used when embeddings are unavailable."""
+
+        lowered_query = query.lower()
+        for keyword in self.KEYWORD_DENYLIST:
+            if keyword in lowered_query:
+                logging.warning(
+                    "Guardrail fallback blocked query '%s' due to keyword '%s'",
+                    query,
+                    keyword,
+                )
+                return False
+        return True
 
 
 file_path = "./guardrail/storage/guardrail.pkl"

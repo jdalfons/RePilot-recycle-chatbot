@@ -318,7 +318,7 @@ class AugmentedRAG:
             completion_tokens=output_tokens,
             prompt_tokens=input_tokens,
             query_price=dollar_cost,
-            embedding_model=self.bdd.embedding_model.__class__.__name__,
+            embedding_model=self.bdd.embedding_name,
             generative_model=self.llm,
         )
         return query_obj

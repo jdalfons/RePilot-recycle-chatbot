@@ -41,7 +41,7 @@ RePilot est un chatbot intelligent spécialisé dans le tri des déchets. Utilis
 - 🗄️ **Choix du Data Warehouse**
   - **SQLite** : Base de données légère utilisée localement
   - **MongoDB** : Base NoSQL adaptée aux instructions de recyclage pour un apprentissage efficace du RAG
-  - **ChromaDB** : Stockage des vecteurs (embeddings) en chunks avec SentenceTransformer
+  - **ChromaDB** : Stockage des vecteurs (embeddings) en chunks avec SentenceTransformer (ou HashingVectorizer hors-ligne)
 - 🚀 **Quiz :**
   - **Questions Personnalisées :**  
   Générées automatiquement à partir de l'historique des interactions de l'utilisateur avec le chatbot.  
@@ -147,7 +147,20 @@ SQLITE_DB_PATH=data/chatbot.db
 MONGO_HOST=localhost
 # MONGO_PORT=27017  # optionnel
 MISTRAL_API_KEY=your_api_key
+# SENTENCE_TRANSFORMER_MODEL=/chemin/vers/le_modele  # optionnel
 ```
+
+#### Modèle d'embedding hors-ligne
+
+- L'application essaie d'abord de charger le modèle local
+  `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. Définissez la
+  variable d'environnement `SENTENCE_TRANSFORMER_MODEL` si vous stockez le
+  modèle dans un dossier local différent.
+- Si aucun modèle SentenceTransformer n'est disponible (par exemple en
+  environnement hors-ligne), un encodeur **HashingVectorizer** déterministe de
+  384 dimensions est utilisé automatiquement. Cela garantit que l'application
+  fonctionne sans téléchargement tout en conservant la compatibilité avec
+  ChromaDB et le reste de la pipeline.
 
 ### Utilisation
 
