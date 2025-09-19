@@ -89,6 +89,7 @@ docker compose up --build -d
 
 - Python 3.11
 - SQLite (intégré à Python)
+- MongoDB Community Server **ou** Docker pour exécuter une instance locale
 - Compte Mistral AI
 - Un fichier `.env` contenant vos clés API (par exemple, `MISTRAL_API_KEY`)
 
@@ -109,9 +110,33 @@ pip install -r requirements.txt
 
 #### Configuration de la base de données
 
+**SQLite** (historique des conversations, quiz, etc.)
+
 ```bash
 sqlite3 data/chatbot.db < sql/init.sql
 ```
+
+**MongoDB** (corpus RAG en local)
+
+1. Démarrer une instance locale (choisir une option) :
+
+   ```bash
+   # Option Docker (recommandée)
+   docker compose up -d mongollm
+
+   # Option standalone
+   mongod --dbpath ./mongo-data
+   ```
+
+2. Injecter les jeux de données JSON :
+
+   ```bash
+   python tools/seed_mongo.py --database rag --collection dechets
+   ```
+
+   Le script utilise automatiquement les variables d'environnement `MONGO_HOST`,
+   `MONGO_PORT` et `MONGO_URI` si elles sont définies. Par défaut, il se connecte
+   sur `localhost:27017`.
 
 #### Configuration des variables d'environnement
 
@@ -119,6 +144,8 @@ Créer un fichier `.env` et y ajouter les informations suivantes :
 
 ```ini
 SQLITE_DB_PATH=data/chatbot.db
+MONGO_HOST=localhost
+# MONGO_PORT=27017  # optionnel
 MISTRAL_API_KEY=your_api_key
 ```
 

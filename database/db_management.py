@@ -72,8 +72,8 @@ class MongoDB:
         db_name: str,
         collection_name: str,
         data_dir: str = "data",
-        host: str = "localhost",
-        port: int = 27017,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
         uri: Optional[str] = None,
     ):
         """
@@ -92,22 +92,41 @@ class MongoDB:
         self.collection = None
         self.collection_name = collection_name
         self.data_dir = data_dir
-        self.host = host
-        self.port = int(port)
-        self.uri = uri
-        # If collection is empty, initialize it
-        if self.uri is not None:
-            self.client = MongoClient(self.uri)
+
+        # Resolve connection parameters with environment fallbacks for local usage
+        env_uri = os.getenv("MONGO_URI")
+        env_host = os.getenv("MONGO_HOST", "localhost")
+        env_port = os.getenv("MONGO_PORT")
+
+        self.uri = uri or env_uri
+        self.host = host if host not in (None, "") else env_host
+        if port is not None:
+            self.port = int(port)
+        elif env_port:
             try:
-                # Check if the connection is successful
-                self.client.admin.command('ping')
-                print("✅ Connected to MongoDB successfully.")
-            except ConnectionFailure:
-                print("❌ MongoDB connection failed.")
-        elif self.host is not None:
-            self.client = MongoClient(self.host, self.port)
+                self.port = int(env_port)
+            except ValueError:
+                logging.warning(
+                    "⚠️ Invalid MONGO_PORT '%s' provided. Falling back to default 27017.",
+                    env_port,
+                )
+                self.port = 27017
         else:
-            raise ValueError("Please provide either a host address or a connection URI")
+            self.port = 27017
+
+        # Establish the connection (defaults to the local MongoDB instance)
+        connection_target = self.uri or f"{self.host}:{self.port}"
+        try:
+            if self.uri:
+                self.client = MongoClient(self.uri)
+            else:
+                self.client = MongoClient(self.host, self.port)
+            self.client.admin.command("ping")
+            logging.info("✅ Connected to MongoDB at %s", connection_target)
+        except ConnectionFailure as exc:
+            logging.error("❌ MongoDB connection failed for %s: %s", connection_target, exc)
+            raise
+
         self.db = None
         self.setup_database()
 

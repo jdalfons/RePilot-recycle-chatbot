@@ -3,6 +3,7 @@ import re
 import logging
 import chromadb
 import uuid
+from typing import Optional
 from tqdm import tqdm
 from dotenv import load_dotenv
 
@@ -13,8 +14,15 @@ from chromadb.config import Settings
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 # Charger les variables d'environnement
 load_dotenv()
-MONGO_HOST = os.getenv('MONGO_HOST', None)
-MONGO_URI = os.getenv('MONGO_URI', None)
+MONGO_URI = os.getenv("MONGO_URI", None)
+MONGO_HOST = os.getenv("MONGO_HOST", "localhost") or "localhost"
+try:
+    MONGO_PORT = int(os.getenv("MONGO_PORT", "27017"))
+except ValueError:
+    logging.warning(
+        "⚠️ Invalid MONGO_PORT provided. Falling back to default 27017."
+    )
+    MONGO_PORT = 27017
 
 class BDDChunks:
     """
@@ -55,7 +63,14 @@ class BDDChunks:
         self.chroma_db = self.client.get_or_create_collection(name=self.collection_name)
         logging.info(f"✅ Nouvelle collection ChromaDB créée : {self.collection_name}")
 
-    def get_documents(self, host, uri, collection: str = 'dechets', database: str = 'rag') -> tuple[list[str], list[str]]:
+    def get_documents(
+        self,
+        host: Optional[str],
+        port: int,
+        uri: Optional[str],
+        collection: str = 'dechets',
+        database: str = 'rag'
+    ) -> tuple[list[str], list[str]]:
         """
         Récupère les documents de MongoDB.
 
@@ -66,7 +81,13 @@ class BDDChunks:
         Returns:
             tuple[list[str], list[str]]: Liste des documents texte et des IDs.
         """
-        mongo_db = MongoDB(db_name=database, collection_name=collection, host=host, uri=uri)
+        mongo_db = MongoDB(
+            db_name=database,
+            collection_name=collection,
+            host=host,
+            port=port,
+            uri=uri,
+        )
         all_documents = mongo_db.query_collection(db_name=database, collection_name=collection, query={})
 
         if not all_documents:
@@ -122,10 +143,11 @@ class BDDChunks:
         logging.info("🚀 Début du pipeline d'ingestion...")
 
         try:
-            host = MONGO_HOST if MONGO_HOST != None else None
-            uri = MONGO_URI if MONGO_URI != None else None
+            host = MONGO_HOST if MONGO_HOST else None
+            uri = MONGO_URI if MONGO_URI else None
+            port = MONGO_PORT
             # Récupérer les documents et les IDs
-            corpus, ids = self.get_documents(host=host, uri=uri)
+            corpus, ids = self.get_documents(host=host, port=port, uri=uri)
             logging.info(f"📂 {len(corpus)} documents récupérés depuis MongoDB")
 
             # Vérifications pour éviter les erreurs

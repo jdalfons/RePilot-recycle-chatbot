@@ -10,6 +10,8 @@ services:
     image: llm-app
     build:
       dockerfile: dockerfile
+    depends_on:
+      - mongollm
     ports:
       - "8503:8503"
     volumes:
