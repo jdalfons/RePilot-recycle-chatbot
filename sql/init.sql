@@ -1,125 +1,121 @@
--- Supprimer les tables existantes si elles existent
+PRAGMA foreign_keys = ON;
+
+-- Drop existing tables
 DROP TABLE IF EXISTS quiz_responses;
 DROP TABLE IF EXISTS quiz_questions;
 DROP TABLE IF EXISTS chatbot_feedback;
- 
+DROP TABLE IF EXISTS llm_logs_quiz;
 DROP TABLE IF EXISTS chatbot_history;
 DROP TABLE IF EXISTS chat_sessions;
 DROP TABLE IF EXISTS users;
 
- 
--- Table des utilisateurs
- 
+-- Users table
 CREATE TABLE users (
     username TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'user')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    is_active INTEGER DEFAULT 1
 );
 
--- Chat Sessions
+-- Chat sessions
 CREATE TABLE chat_sessions (
     chat_title TEXT PRIMARY KEY,
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    username TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- Chatbot History
+-- Chatbot history
 CREATE TABLE chatbot_history (
-    query_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chat_title TEXT REFERENCES chat_sessions(chat_title) ON DELETE CASCADE,
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    query_id TEXT PRIMARY KEY,
+    chat_title TEXT,
+    username TEXT,
     query TEXT NOT NULL,
     answer TEXT NOT NULL,
     embedding_model TEXT,
     generative_model TEXT,
     context TEXT,
-    safe BOOLEAN DEFAULT TRUE,
+    safe INTEGER DEFAULT 1,
     latency REAL,
     completion_tokens INTEGER,
     prompt_tokens INTEGER,
     query_price REAL,
     energy_usage REAL,
     gwp REAL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_title) REFERENCES chat_sessions(chat_title) ON DELETE CASCADE,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- LLM Logs for Quiz Queries
+-- LLM logs for quiz queries
 CREATE TABLE llm_logs_quiz (
-    log_id SERIAL PRIMARY KEY,
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
     query TEXT NOT NULL,
     response TEXT,
     generative_model TEXT NOT NULL,
     energy_usage REAL,
     gwp REAL,
-    completion_tokens INT,
-    prompt_tokens INT,
+    completion_tokens INTEGER,
+    prompt_tokens INTEGER,
     query_price REAL,
-    execution_time_ms FLOAT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    execution_time_ms REAL,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- User Feedback Table
+-- User feedback
 CREATE TABLE chatbot_feedback (
-    id SERIAL PRIMARY KEY,
-    query_id UUID REFERENCES chatbot_history(query_id) ON DELETE CASCADE,
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query_id TEXT,
+    username TEXT,
     feedback TEXT CHECK (feedback IN ('Utile', 'Inutile')) NOT NULL,
     comment TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (query_id) REFERENCES chatbot_history(query_id) ON DELETE CASCADE,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- Quiz Questions
+-- Quiz questions
 CREATE TABLE quiz_questions (
-    quiz_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    quiz_id TEXT PRIMARY KEY,
+    username TEXT,
     question TEXT NOT NULL,
     correct_answer TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- Quiz Responses
+-- Quiz responses
 CREATE TABLE quiz_responses (
-    response_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    quiz_id UUID REFERENCES quiz_questions(quiz_id) ON DELETE CASCADE,
-    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    response_id TEXT PRIMARY KEY,
+    quiz_id TEXT,
+    username TEXT,
     user_answer TEXT NOT NULL,
-    is_correct BOOLEAN NOT NULL,
-    answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_correct INTEGER NOT NULL,
+    answered_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (quiz_id) REFERENCES quiz_questions(quiz_id) ON DELETE CASCADE,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- Indexes for Performance Optimization
-CREATE INDEX idx_chatbot_history_username ON chatbot_history(username);
-CREATE INDEX idx_chatbot_history_timestamp ON chatbot_history(timestamp);
-CREATE INDEX idx_chatbot_feedback_query_id ON chatbot_feedback(query_id);
-CREATE INDEX idx_llm_logs_quiz_username ON llm_logs_quiz(username);
+-- Default users
+INSERT INTO users (username, password_hash, role) VALUES
+('admin', '0192023a7bbd73250516f069df18b500', 'admin'),
+('admin2', '0192023a7bbd73250516f069df18b500', 'admin'),
+('user', '6e71af3b38892f820164d76925e8c050', 'user');
 
--- Default Users
-INSERT INTO users (username, password_hash, role) 
-VALUES ('admin', md5('admin123'), 'admin');
+-- Default chat sessions
+INSERT INTO chat_sessions (chat_title, username) VALUES
+('Default Chat', 'user'),
+('Default Chat 2', 'user');
 
+-- Sample chatbot history
+INSERT INTO chatbot_history (query_id, chat_title, username, query, answer) VALUES
+('1', 'Default Chat', 'user', 'Hello', 'Hi! How can I help you?'),
+('2', 'Default Chat', 'user', 'How are you?', 'I am doing great!'),
+('3', 'Default Chat 2', 'user', 'What is the weather today?', 'The weather is sunny today.'),
+('4', 'Default Chat 2', 'user', 'What is the weather tomorrow?', 'The weather will be rainy tomorrow.');
 
-INSERT INTO users (username, password_hash, role) 
-VALUES ('admin2', md5('admin123'), 'admin');
-
--- Default Regular User
-INSERT INTO users (username, password_hash, role) 
-VALUES ('user', md5('user123'), 'user');
-
--- Default Chat Sessions
-INSERT INTO chat_sessions (chat_title, username) VALUES 
-    ('Default Chat', 'user'),
-    ('Default Chat 2', 'user');
-
--- Sample Chatbot History
-INSERT INTO chatbot_history (chat_title, username, query, answer)
-VALUES 
-    ('Default Chat', 'user', 'Hello', 'Hi! How can I help you?'),
-    ('Default Chat', 'user', 'How are you?', 'I am doing great!'),
-    ('Default Chat 2', 'user', 'What is the weather today?', 'The weather is sunny today.'),
-    ('Default Chat 2', 'user', 'What is the weather tomorrow?', 'The weather will be rainy tomorrow.');

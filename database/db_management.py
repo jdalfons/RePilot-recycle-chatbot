@@ -5,7 +5,7 @@ import os
 import json
 import logging
 from pymongo import MongoClient
-import psycopg2
+import sqlite3
 from rag_simulation.schema import Query
 import time
 import litellm
@@ -46,22 +46,17 @@ def cached_process_quiz_question(
 
 
 @st.cache_resource(ttl=600)  # Caches the connection for 10 minutes
-def get_db_connection() -> Optional[psycopg2.extensions.connection]:
+def get_db_connection() -> Optional[sqlite3.Connection]:
     """
-    Establishes a persistent connection to the PostgreSQL database.
+    Establishes a persistent connection to the SQLite database.
 
     Returns:
-        Optional[psycopg2.extensions.connection]: The database connection object if successful, None otherwise.
+        Optional[sqlite3.Connection]: The database connection object if successful, None otherwise.
     """
     try:
-        return psycopg2.connect(
-            dbname=os.getenv("POSTGRES_DBNAME", "llm"),
-            user=os.getenv("POSTGRES_USER", "llm"),
-            password=os.getenv("POSTGRES_PASSWORD", "llm"),
-            host=os.getenv("POSTGRES_HOST", "localhost"),
-            port=int(os.getenv("POSTGRES_PORT", "32003")),
-        )
-    except psycopg2.Error as e:
+        db_path = os.getenv("SQLITE_DB_PATH", "chatbot.db")
+        return sqlite3.connect(db_path, check_same_thread=False)
+    except sqlite3.Error as e:
         st.error(f"❌ Database connection failed: {e}")
         return None  # Avoid breaking execution
 
@@ -258,9 +253,7 @@ class SQLDatabase:
     def initialize_database(self):
         """Vérifie et initialise les tables si elles n'existent pas."""
         try:
-            self.cursor.execute(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
-            )
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             existing_tables = {table[0] for table in self.cursor.fetchall()}
             required_tables = {
                 "chatbot_history",
@@ -275,7 +268,7 @@ class SQLDatabase:
                 print(f"⚠️ Création des tables manquantes : {missing_tables}")
                 with open("sql/init.sql", "r") as file:
                     sql_script = file.read()
-                    self.cursor.execute(sql_script)
+                    self.cursor.executescript(sql_script)
                     self.con.commit()
                     print("✅ Database initialized successfully!")
         except Exception as e:
@@ -323,7 +316,7 @@ class SQLDatabase:
             query_id, query, answer, embedding_model, generative_model, context, 
             safe, latency, completion_tokens, prompt_tokens, query_price,
             energy_usage, gwp, username, timestamp
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """
         try:
             self.cursor.execute(
@@ -384,7 +377,7 @@ class SQLDatabase:
         INSERT INTO llm_logs_quiz (
             username, query, response, generative_model, energy_usage, gwp, 
             completion_tokens, prompt_tokens, query_price, execution_time_ms
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         # print(
         #     "username",
@@ -629,7 +622,7 @@ class SQLDatabase:
         try:
             # ✅ Check if the user exists
             self.cursor.execute(
-                "SELECT COUNT(*) FROM users WHERE username = %s;", (username,)
+                "SELECT COUNT(*) FROM users WHERE username = ?;", (username,)
             )
             user_exists = self.cursor.fetchone()[0]
 
@@ -642,9 +635,9 @@ class SQLDatabase:
                 """
                 SELECT query, answer 
                 FROM chatbot_history
-                WHERE username = %s  
+                WHERE username = ?  
                 ORDER BY RANDOM()
-                LIMIT %s;
+                LIMIT ?;
                 """,
                 (username, limit + 2),  # Fetch more to account for filtering
             )
@@ -679,16 +672,10 @@ class SQLDatabase:
         """Check if required tables exist, create if not"""
         try:
             self.cursor.execute(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = %s
-                )
-            """,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
                 ("users",),
             )
-            if not self.cursor.fetchone()[0]:
+            if not self.cursor.fetchone():
                 self.create_tables()
         except Exception as e:
             logger.error(f"Table check failed: {e}")
@@ -698,7 +685,7 @@ class SQLDatabase:
         """Create required tables from SQL file"""
         try:
             with open("sql/init.sql", "r") as file:
-                self.cursor.execute(file.read())
+                self.cursor.executescript(file.read())
             self.con.commit()
             logger.info("Database tables created successfully")
         except Exception as e:
@@ -721,7 +708,7 @@ class SQLDatabase:
                 SELECT EXISTS (
                     SELECT 1 
                     FROM users 
-                    WHERE username = %s
+                    WHERE username = ?
                 )
             """,
                 (username,),
@@ -738,7 +725,7 @@ class SQLDatabase:
             self.cursor.execute(
                 """
                 INSERT INTO users (username, password_hash,  role) 
-                VALUES (%s, %s, %s)
+                VALUES (?, ?, ?)
                 RETURNING username
             """,
                 (username, password_hash, role),
@@ -756,7 +743,7 @@ class SQLDatabase:
                 """
                 SELECT password_hash 
                 FROM users 
-                WHERE username = %s
+                WHERE username = ?
             """,
                 (username,),
             )
@@ -776,7 +763,7 @@ class SQLDatabase:
             self.cursor.execute(
                 """
                 INSERT INTO chat_sessions (chat_title, username)
-                VALUES (%s, %s)
+                VALUES (?, ?)
                 RETURNING chat_title
             """,
                 (title, username),
@@ -811,7 +798,7 @@ class SQLDatabase:
             count(*) as query_count
    
         FROM chatbot_history
-        WHERE username = %s
+        WHERE username = ?
         GROUP BY timestamp, avg_latency, avg_safe, avg_completion_tokens, avg_prompt_tokens, avg_query_price, avg_energy_usage, avg_gwp
         """,
             (username,),
@@ -1043,7 +1030,7 @@ class SQLDatabase:
                 """
                 SELECT role 
                 FROM users 
-                WHERE username = %s
+                WHERE username = ?
             """,
                 (username,),
             )
@@ -1107,7 +1094,7 @@ class SQLDatabase:
                     MIN(ch.created_at) as date,
                     COUNT(*) as message_count
                 FROM chatbot_history ch
-                WHERE ch.username = %s
+                WHERE ch.username = ?
                 GROUP BY ch.chat_title
                 ORDER BY MIN(ch.created_at) DESC
             """,
@@ -1137,7 +1124,7 @@ class SQLDatabase:
                 """
                 SELECT  query, answer, created_at
                 FROM chatbot_history
-                WHERE username = %s
+                WHERE username = ?
                 ORDER BY created_at ASC
             """,
                 (username,),
@@ -1163,7 +1150,7 @@ class SQLDatabase:
                 """
                 SELECT chat_title, updated_at
                 FROM chat_sessions
-                WHERE username = %s
+                WHERE username = ?
                 ORDER BY updated_at DESC
             """,
                 (username,),
@@ -1228,7 +1215,7 @@ class SQLDatabase:
             COUNT(DISTINCT username) AS user_count,
             COUNT(query_id) AS query_count
         FROM chatbot_history
-        WHERE DATE(created_at) BETWEEN %s AND %s  -- Cast vers une date sans heures
+        WHERE DATE(created_at) BETWEEN ? AND ?  -- Cast vers une date sans heures
         GROUP BY activity_date
         ORDER BY activity_date;
         """
@@ -1243,23 +1230,23 @@ class SQLDatabase:
         try:
             # Supprimer les données associées dans les autres tables
             self.cursor.execute(
-                "DELETE FROM chatbot_history WHERE username = %s", (username,)
+                "DELETE FROM chatbot_history WHERE username = ?", (username,)
             )
             self.cursor.execute(
-                "DELETE FROM chatbot_feedback WHERE username = %s", (username,)
+                "DELETE FROM chatbot_feedback WHERE username = ?", (username,)
             )
             self.cursor.execute(
-                "DELETE FROM quiz_questions WHERE username = %s", (username,)
+                "DELETE FROM quiz_questions WHERE username = ?", (username,)
             )
             self.cursor.execute(
-                "DELETE FROM quiz_responses WHERE username = %s", (username,)
+                "DELETE FROM quiz_responses WHERE username = ?", (username,)
             )
             self.cursor.execute(
-                "DELETE FROM chat_sessions WHERE username = %s", (username,)
+                "DELETE FROM chat_sessions WHERE username = ?", (username,)
             )
 
             # Supprimer l'utilisateur
-            self.cursor.execute("DELETE FROM users WHERE username = %s", (username,))
+            self.cursor.execute("DELETE FROM users WHERE username = ?", (username,))
             self.con.commit()
             return True
         except Exception as e:
@@ -1326,7 +1313,7 @@ class SQLDatabase:
                 """
                 SELECT username, role, created_at, is_active
                 FROM users
-                WHERE username = %s
+                WHERE username = ?
             """,
                 (username,),
             )
@@ -1364,7 +1351,7 @@ class SQLDatabase:
                     COALESCE(SUM(gwp), 0) AS environmental_impact,
                     COALESCE(AVG(latency), 0) AS avg_latency
                 FROM chatbot_history
-                WHERE username = %s
+                WHERE username = ?
             """,
                 (username,),
             )
@@ -1391,7 +1378,7 @@ class SQLDatabase:
                 """
                 SELECT feedback, comment, timestamp
                 FROM chatbot_feedback
-                WHERE username = %s
+                WHERE username = ?
                 ORDER BY timestamp DESC
             """,
                 (username,),
@@ -1495,7 +1482,7 @@ class SQLDatabase:
                 SELECT q.question, r.user_answer, q.correct_answer, r.is_correct, r.answered_at
                 FROM quiz_responses r
                 JOIN quiz_questions q ON r.quiz_id = q.quiz_id
-                WHERE r.username = %s
+                WHERE r.username = ?
                 ORDER BY r.answered_at DESC
             """,
                 (username,),

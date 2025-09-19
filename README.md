@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28-red)](https://streamlit.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.0-blue)](https://www.postgresql.org/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-blue)](https://www.sqlite.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.0-green)](https://www.mongodb.com/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-0.4.15-orange)](https://www.trychroma.com/)
 [![LiteLLM](https://img.shields.io/badge/LiteLLM-1.0-yellow)](https://github.com/BerriAI/litellm)
@@ -39,10 +39,9 @@ RePilot est un chatbot intelligent spécialisé dans le tri des déchets. Utilis
   - Calcul des coûts par requête
 
 - 🗄️ **Choix du Data Warehouse**
-  - **PostgreSQL** : Base de données relationnelle puissante pour le scaling
+  - **SQLite** : Base de données légère utilisée localement
   - **MongoDB** : Base NoSQL adaptée aux instructions de recyclage pour un apprentissage efficace du RAG
   - **ChromaDB** : Stockage des vecteurs (embeddings) en chunks avec SentenceTransformer
-  - 
 - 🚀 **Quiz :**
   - **Questions Personnalisées :**  
   Générées automatiquement à partir de l'historique des interactions de l'utilisateur avec le chatbot.  
@@ -89,7 +88,7 @@ docker compose up --build -d
 #### Prérequis
 
 - Python 3.11
-- PostgreSQL
+- SQLite (intégré à Python)
 - Compte Mistral AI
 - Un fichier `.env` contenant vos clés API (par exemple, `MISTRAL_API_KEY`)
 
@@ -111,7 +110,7 @@ pip install -r requirements.txt
 #### Configuration de la base de données
 
 ```bash
-psql -U postgres -f database/init.sql
+sqlite3 data/chatbot.db < sql/init.sql
 ```
 
 #### Configuration des variables d'environnement
@@ -119,11 +118,7 @@ psql -U postgres -f database/init.sql
 Créer un fichier `.env` et y ajouter les informations suivantes :
 
 ```ini
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=poc_rag
-POSTGRES_USER=your_user
-POSTGRES_PASSWORD=your_password
+SQLITE_DB_PATH=data/chatbot.db
 MISTRAL_API_KEY=your_api_key
 ```
 
